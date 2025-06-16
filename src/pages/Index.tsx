@@ -10,15 +10,21 @@ import EmployeeDashboard from '@/components/EmployeeDashboard';
 type AppState = 'intro' | 'userType' | 'register' | 'customerDashboard' | 'employeeDashboard';
 
 const Index = () => {
+  console.log('Index component is rendering');
+  
   const [appState, setAppState] = useState<AppState>('intro');
   const [userType, setUserType] = useState<'customer' | 'employee' | null>(null);
   const [registrationData, setRegistrationData] = useState<RegistrationData | null>(null);
 
+  console.log('Current app state:', appState);
+
   const handleContinueFromIntro = () => {
+    console.log('Continuing from intro screen');
     setAppState('userType');
   };
 
   const handleUserTypeSelection = (type: 'customer' | 'employee') => {
+    console.log('User type selected:', type);
     setUserType(type);
     if (type === 'customer') {
       setAppState('register');
@@ -30,6 +36,7 @@ const Index = () => {
   };
 
   const handleRegistrationComplete = (data: RegistrationData) => {
+    console.log('Registration completed with data:', data);
     setRegistrationData(data);
     setAppState('customerDashboard');
     
@@ -41,6 +48,8 @@ const Index = () => {
     name: registrationData?.fullName || 'Anna Hansen',
     loyaltyPoints: 23
   };
+
+  console.log('Rendering app state:', appState);
 
   return (
     <LanguageProvider>
