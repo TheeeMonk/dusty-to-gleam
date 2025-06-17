@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Sparkles, Mail, Lock, User, Phone } from 'lucide-react';
 import { useProperties } from '@/hooks/useProperties';
 import { useAuth } from '@/contexts/AuthContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
 import RegistrationForm from '@/components/RegistrationForm';
 import type { RegistrationData } from '@/components/RegistrationForm';
 
@@ -122,7 +123,9 @@ const Auth = () => {
   // If we're showing property registration and user is authenticated
   if (showPropertyRegistration && user) {
     return (
-      <RegistrationForm onComplete={handlePropertyRegistration} />
+      <LanguageProvider>
+        <RegistrationForm onComplete={handlePropertyRegistration} />
+      </LanguageProvider>
     );
   }
 
