@@ -10,11 +10,21 @@ interface IntroScreenProps {
 }
 
 const IntroScreen: React.FC<IntroScreenProps> = ({ onContinue }) => {
+  console.log('IntroScreen is rendering');
+  
   const { language, setLanguage, t } = useLanguage();
 
   const handleLanguageSelect = (lang: Language) => {
+    console.log('Language selected:', lang);
     setLanguage(lang);
   };
+
+  const handleContinue = () => {
+    console.log('Continue button clicked');
+    onContinue();
+  };
+
+  console.log('IntroScreen current language:', language);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -59,7 +69,7 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onContinue }) => {
             </div>
 
             <Button 
-              onClick={onContinue}
+              onClick={handleContinue}
               className="w-full mt-6 bg-gradient-to-r from-dusty-500 to-dirty-500 hover:from-dusty-600 hover:to-dirty-600"
               size="lg"
             >
@@ -82,5 +92,7 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onContinue }) => {
     </div>
   );
 };
+
+console.log('IntroScreen component defined');
 
 export default IntroScreen;
