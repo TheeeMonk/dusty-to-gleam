@@ -1,657 +1,157 @@
-
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Calendar } from '@/components/ui/calendar';
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import PropertyForm from '@/components/PropertyForm';
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Input,
+  Textarea,
+  Select,
+  SelectItem,
+} from "@nextui-org/react";
+import { useToast } from "@/hooks/use-toast"
 import { useBookings } from '@/hooks/useBookings';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { nb } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
-import { 
-  Home, 
-  Truck, 
-  Eye, 
-  Calendar as CalendarIcon, 
-  Building,
-  MapPin,
-  Clock,
-  CheckCircle,
-  Plus,
-  Repeat
-} from 'lucide-react';
-
-interface Property {
-  id: string;
-  name: string;
-  address: string;
-  type: string;
-  rooms?: number;
-  squareMeters?: number;
-  windows?: number;
-  hasPets?: boolean;
-  notes?: string;
-}
+import { useProperties } from '@/hooks/useProperties';
 
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  properties: Property[];
-  onAddProperty?: (property: Omit<Property, 'id'>) => Promise<Property>;
 }
 
-type RecurringOption = 'none' | 'weekly' | 'biweekly' | 'monthly';
-
-const BookingModal: React.FC<BookingModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  properties, 
-  onAddProperty 
-}) => {
+const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
+  const { toast } = useToast();
   const { createBooking } = useBookings();
-  const [selectedService, setSelectedService] = useState<string | null>(null);
-  const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
-  const [recurringOption, setRecurringOption] = useState<RecurringOption>('none');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const { properties } = useProperties();
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [serviceType, setServiceType] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [step, setStep] = useState<'service' | 'property' | 'recurring' | 'datetime' | 'confirmation'>('service');
-  const [isPropertyFormOpen, setIsPropertyFormOpen] = useState(false);
+  const [estimatedDuration, setEstimatedDuration] = useState<number>(60);
+  const [estimatedPriceMin, setEstimatedPriceMin] = useState<number>(500);
+  const [estimatedPriceMax, setEstimatedPriceMax] = useState<number>(1000);
+  const [specialInstructions, setSpecialInstructions] = useState<string>('');
 
-  const services = [
-    {
-      id: 'standard',
-      name: 'Standard vask',
-      description: 'Grundig rengjøring av alle rom',
-      icon: Home,
-      price: '800-1200 kr',
-      duration: '2-3 timer',
-      estimatedDuration: 150, // minutes
-      estimatedPriceMin: 80000, // øre
-      estimatedPriceMax: 120000 // øre
-    },
-    {
-      id: 'moving',
-      name: 'Flyttevask',
-      description: 'Dyptgående vask ved inn/utflytting',
-      icon: Truck,
-      price: '1500-2500 kr',
-      duration: '4-6 timer',
-      estimatedDuration: 300,
-      estimatedPriceMin: 150000,
-      estimatedPriceMax: 250000
-    },
-    {
-      id: 'windows',
-      name: 'Vindus vask',
-      description: 'Innvendig og utvendig vindusvask',
-      icon: Eye,
-      price: '400-800 kr',
-      duration: '1-2 timer',
-      estimatedDuration: 90,
-      estimatedPriceMin: 40000,
-      estimatedPriceMax: 80000
-    },
-    {
-      id: 'seasonal',
-      name: 'Sesongvask',
-      description: 'Grundig vask 2-4 ganger per år',
-      icon: CalendarIcon,
-      price: '1000-1800 kr',
-      duration: '3-5 timer',
-      estimatedDuration: 240,
-      estimatedPriceMin: 100000,
-      estimatedPriceMax: 180000
-    },
-    {
-      id: 'commercial',
-      name: 'Næringsvask',
-      description: 'Rengjøring av kontor og butikklokaler',
-      icon: Building,
-      price: 'Fra 600 kr/time',
-      duration: 'Etter avtale',
-      estimatedDuration: 120,
-      estimatedPriceMin: 60000,
-      estimatedPriceMax: 120000
-    }
-  ];
-
-  const recurringOptions = [
-    {
-      id: 'none' as RecurringOption,
-      name: 'Engangs bestilling',
-      description: 'Kun én vask',
-      icon: CalendarIcon
-    },
-    {
-      id: 'weekly' as RecurringOption,
-      name: 'Ukentlig',
-      description: 'Hver 7. dag',
-      icon: Repeat,
-      discount: '10% rabatt'
-    },
-    {
-      id: 'biweekly' as RecurringOption,
-      name: 'Annenhver uke',
-      description: 'Hver 14. dag',
-      icon: Repeat,
-      discount: '7% rabatt'
-    },
-    {
-      id: 'monthly' as RecurringOption,
-      name: 'Månedlig',
-      description: 'Hver måned',
-      icon: Repeat,
-      discount: '5% rabatt'
-    }
-  ];
-
-  const timeSlots = [
-    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
-    '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
-    '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
-  ];
-
-  const handleServiceSelect = (serviceId: string) => {
-    setSelectedService(serviceId);
-    setStep('property');
-  };
-
-  const handlePropertySelect = (propertyId: string) => {
-    setSelectedProperty(propertyId);
-    setStep('recurring');
-  };
-
-  const handleRecurringSelect = () => {
-    setStep('datetime');
-  };
-
-  const handleDateTimeSelect = () => {
-    if (!selectedDate || !selectedTime) {
-      toast.error('Vennligst velg både dato og klokkeslett');
-      return;
-    }
-    setStep('confirmation');
-  };
-
-  const handleAddNewProperty = () => {
-    setIsPropertyFormOpen(true);
-  };
-
-  const handlePropertyFormSave = async (newProperty: Omit<Property, 'id' | 'created_at' | 'updated_at'>) => {
-    if (onAddProperty) {
-      try {
-        const savedProperty = await onAddProperty(newProperty);
-        console.log('New property saved:', savedProperty);
-        toast.success('Ny eiendom lagt til!');
-        setIsPropertyFormOpen(false);
-        return savedProperty;
-      } catch (error) {
-        console.error('Error saving property:', error);
-        toast.error('Kunne ikke lagre eiendom');
-        throw error;
-      }
-    } else {
-      setIsPropertyFormOpen(false);
-      throw new Error('No add property handler provided');
-    }
-  };
-
-  const handleBooking = async () => {
-    if (!selectedService || !selectedProperty || !selectedDate || !selectedTime) {
-      toast.error('Vennligst fullfør alle steg før bestilling');
-      return;
-    }
-
-    const selectedServiceData = services.find(s => s.id === selectedService);
-    
-    if (!selectedServiceData) {
-      toast.error('Ugyldig tjeneste valgt');
+  const handleCreateBooking = async () => {
+    if (!selectedPropertyId || !serviceType || !selectedDate || !selectedTime) {
+      toast({
+        title: "Advarsel",
+        description: "Vennligst fyll ut alle obligatoriske felt.",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
-      // Calculate discounted prices if recurring
-      let priceMin = selectedServiceData.estimatedPriceMin;
-      let priceMax = selectedServiceData.estimatedPriceMax;
-      
-      if (recurringOption !== 'none') {
-        const discountRate = recurringOption === 'weekly' ? 0.9 : 
-                           recurringOption === 'biweekly' ? 0.93 : 0.95;
-        priceMin = Math.round(priceMin * discountRate);
-        priceMax = Math.round(priceMax * discountRate);
-      }
-
-      const booking = await createBooking({
-        property_id: selectedProperty,
-        service_type: selectedServiceData.name,
-        scheduled_date: selectedDate.toISOString(),
+      await createBooking({
+        property_id: selectedPropertyId,
+        service_type: serviceType,
+        status: 'pending',
+        scheduled_date: selectedDate,
         scheduled_time: selectedTime,
-        estimated_duration: selectedServiceData.estimatedDuration,
-        estimated_price_min: priceMin,
-        estimated_price_max: priceMax,
-        special_instructions: recurringOption !== 'none' ? 
-          `Gjentakende bestilling: ${recurringOptions.find(o => o.id === recurringOption)?.name}` : 
-          undefined
+        estimated_duration,
+        estimated_price_min: estimatedPriceMin,
+        estimated_price_max: estimatedPriceMax,
+        special_instructions: specialInstructions
       });
 
-      if (booking) {
-        toast.success('Bestilling opprettet!');
-        console.log('Booking created:', booking);
-        onClose();
-        // Reset state
-        setStep('service');
-        setSelectedService(null);
-        setSelectedProperty(null);
-        setRecurringOption('none');
-        setSelectedDate(undefined);
-        setSelectedTime('');
-      } else {
-        toast.error('Kunne ikke opprette bestilling');
-      }
-    } catch (error) {
-      console.error('Error creating booking:', error);
-      toast.error('En feil oppstod ved opprettelse av bestilling');
+      toast({
+        title: "Suksess",
+        description: "Booking opprettet!",
+      });
+      onClose();
+    } catch (error: any) {
+      toast({
+        title: "Feil",
+        description: error.message || "Kunne ikke opprette booking.",
+        variant: "destructive",
+      });
     }
   };
 
-  const selectedServiceData = services.find(s => s.id === selectedService);
-  const selectedPropertyData = properties.find(p => p.id === selectedProperty);
-  const selectedRecurringData = recurringOptions.find(o => o.id === recurringOption);
-
-  // Filter out past dates
-  const isDateDisabled = (date: Date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return date < today;
-  };
-
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl gradient-text text-center">
-              Book rengjøring
-            </DialogTitle>
-            <DialogDescription className="text-center">
-              {step === 'service' && 'Velg type rengjøring'}
-              {step === 'property' && 'Velg eiendom'}
-              {step === 'recurring' && 'Velg hyppighet'}
-              {step === 'datetime' && 'Velg dato og tid'}
-              {step === 'confirmation' && 'Bekreft bestilling'}
-            </DialogDescription>
-          </DialogHeader>
-
-          {step === 'service' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {services.map((service) => {
-                const IconComponent = service.icon;
-                return (
-                  <Card 
-                    key={service.id}
-                    className="wow-card card-hover cursor-pointer animate-fade-in"
-                    onClick={() => handleServiceSelect(service.id)}
-                  >
-                    <CardHeader className="text-center pb-4">
-                      <div className="flex justify-center mb-3">
-                        <div className="p-4 bg-sky-100 rounded-full animate-float">
-                          <IconComponent className="h-8 w-8 text-sky-600" />
-                        </div>
-                      </div>
-                      <CardTitle className="text-lg">{service.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-center space-y-3">
-                      <p className="text-sm text-muted-foreground">
-                        {service.description}
-                      </p>
-                      <div className="flex justify-center space-x-4">
-                        <Badge variant="secondary" className="bg-sky-100 text-sky-800">
-                          {service.price}
-                        </Badge>
-                        <Badge variant="outline">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {service.duration}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-
-          {step === 'property' && (
-            <div className="space-y-4">
-              <Button 
-                variant="outline" 
-                onClick={() => setStep('service')}
-                className="mb-4"
+    <Modal isOpen={isOpen} onClose={onClose} backdrop="blur">
+      <ModalContent>
+        {(onClose) => (
+          <>
+            <ModalHeader className="flex flex-col gap-1">Opprett Ny Booking</ModalHeader>
+            <ModalBody>
+              <Select
+                label="Velg Eiendom"
+                placeholder="Velg en eiendom"
+                selectedKeys={[selectedPropertyId || '']}
+                onSelectionChange={key => setSelectedPropertyId(key.currentKey)}
               >
-                ← Tilbake til tjenester
-              </Button>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {properties.map((property) => (
-                  <Card 
-                    key={property.id}
-                    className="wow-card card-hover cursor-pointer animate-fade-in"
-                    onClick={() => handlePropertySelect(property.id)}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-start space-x-4">
-                        <div className="p-3 bg-sky-100 rounded-full">
-                          <Home className="h-6 w-6 text-sky-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg">{property.name}</h3>
-                          <div className="flex items-center space-x-1 text-muted-foreground">
-                            <MapPin className="h-4 w-4" />
-                            <span className="text-sm">{property.address}</span>
-                          </div>
-                          <Badge variant="outline" className="mt-2">
-                            {property.type}
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                {properties.map(property => (
+                  <SelectItem key={property.id} value={property.id}>
+                    {property.name} - {property.address}
+                  </SelectItem>
                 ))}
-                
-                {/* Add new property card */}
-                <Card 
-                  className="wow-card card-hover border-dashed border-sky-300 cursor-pointer animate-fade-in"
-                  onClick={handleAddNewProperty}
-                >
-                  <CardContent className="p-6 text-center space-y-4">
-                    <div className="p-4 bg-sky-50 rounded-full w-fit mx-auto">
-                      <Plus className="h-8 w-8 text-sky-500" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg text-sky-700">Legg til ny eiendom</h3>
-                      <p className="text-muted-foreground text-sm">Registrer en ny eiendom for rengjøring</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
+              </Select>
 
-          {step === 'recurring' && (
-            <div className="space-y-4">
-              <Button 
-                variant="outline" 
-                onClick={() => setStep('property')}
-                className="mb-4"
-              >
-                ← Tilbake til eiendommer
+              <Input
+                type="text"
+                label="Type tjeneste"
+                placeholder="F.eks. Vask"
+                value={serviceType}
+                onValueChange={setServiceType}
+              />
+
+              <Input
+                type="date"
+                label="Valgt dato"
+                value={selectedDate}
+                onValueChange={setSelectedDate}
+              />
+
+              <Input
+                type="time"
+                label="Valgt tidspunkt"
+                value={selectedTime}
+                onValueChange={setSelectedTime}
+              />
+
+              <Input
+                type="number"
+                label="Estimert varighet (minutter)"
+                value={estimatedDuration}
+                onValueChange={value => setEstimatedDuration(Number(value))}
+              />
+
+              <Input
+                type="number"
+                label="Estimert minimumspris"
+                value={estimatedPriceMin}
+                onValueChange={value => setEstimatedPriceMin(Number(value))}
+              />
+
+              <Input
+                type="number"
+                label="Estimert maksimumspris"
+                value={estimatedPriceMax}
+                onValueChange={value => setEstimatedPriceMax(Number(value))}
+              />
+
+              <Textarea
+                label="Spesielle instruksjoner"
+                placeholder="F.eks. Ring ved ankomst"
+                value={specialInstructions}
+                onValueChange={setSpecialInstructions}
+              />
+            </ModalBody>
+            <ModalFooter>
+              <Button color="danger" variant="flat" onPress={onClose}>
+                Lukk
               </Button>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-center">Hvor ofte ønsker du rengjøring?</h3>
-                <RadioGroup value={recurringOption} onValueChange={(value) => setRecurringOption(value as RecurringOption)}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {recurringOptions.map((option) => {
-                      const IconComponent = option.icon;
-                      return (
-                        <div key={option.id} className="relative">
-                          <RadioGroupItem value={option.id} id={option.id} className="sr-only" />
-                          <Label 
-                            htmlFor={option.id}
-                            className="block cursor-pointer"
-                          >
-                            <Card 
-                              className={`wow-card card-hover ${
-                                recurringOption === option.id 
-                                  ? 'border-sky-500 bg-sky-50' 
-                                  : 'border-gray-200'
-                              }`}
-                            >
-                              <CardContent className="p-6">
-                                <div className="flex items-center space-x-4">
-                                  <div className={`p-3 rounded-full ${
-                                    recurringOption === option.id 
-                                      ? 'bg-sky-200' 
-                                      : 'bg-sky-100'
-                                  }`}>
-                                    <IconComponent className="h-6 w-6 text-sky-600" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <h4 className="font-semibold">{option.name}</h4>
-                                    <p className="text-sm text-muted-foreground">{option.description}</p>
-                                    {option.discount && (
-                                      <Badge variant="secondary" className="mt-2 bg-green-100 text-green-800">
-                                        {option.discount}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </Label>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </RadioGroup>
-                
-                <div className="flex justify-center pt-4">
-                  <Button 
-                    onClick={handleRecurringSelect}
-                    className="px-8 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700"
-                  >
-                    Fortsett
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 'datetime' && (
-            <div className="space-y-6">
-              <Button 
-                variant="outline" 
-                onClick={() => setStep('recurring')}
-                className="mb-4"
-              >
-                ← Tilbake til hyppighet
+              <Button color="primary" onPress={handleCreateBooking}>
+                Opprett Booking
               </Button>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Date Selection */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-center">Velg dato</h3>
-                  <div className="flex justify-center">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      disabled={isDateDisabled}
-                      locale={nb}
-                      className="rounded-md border shadow"
-                    />
-                  </div>
-                  {selectedDate && (
-                    <p className="text-center text-sm text-muted-foreground">
-                      Valgt: {format(selectedDate, 'EEEE, d. MMMM yyyy', { locale: nb })}
-                    </p>
-                  )}
-                </div>
-
-                {/* Time Selection */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-center">Velg klokkeslett</h3>
-                  <div className="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto">
-                    {timeSlots.map((time) => (
-                      <Button
-                        key={time}
-                        variant={selectedTime === time ? "default" : "outline"}
-                        onClick={() => setSelectedTime(time)}
-                        className={cn(
-                          "text-sm",
-                          selectedTime === time && "bg-sky-500 hover:bg-sky-600"
-                        )}
-                      >
-                        {time}
-                      </Button>
-                    ))}
-                  </div>
-                  {selectedTime && (
-                    <p className="text-center text-sm text-muted-foreground">
-                      Valgt klokkeslett: {selectedTime}
-                    </p>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex justify-center pt-6">
-                <Button 
-                  onClick={handleDateTimeSelect}
-                  disabled={!selectedDate || !selectedTime}
-                  className="px-8 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700"
-                >
-                  Fortsett til bekreftelse
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 'confirmation' && (
-            <div className="space-y-6">
-              <Button 
-                variant="outline" 
-                onClick={() => setStep('datetime')}
-                className="mb-4"
-              >
-                ← Tilbake til dato og tid
-              </Button>
-              
-              <Card className="wow-card animate-pulse-glow">
-                <CardHeader className="text-center">
-                  <div className="flex justify-center mb-4">
-                    <CheckCircle className="h-16 w-16 text-green-500 animate-float" />
-                  </div>
-                  <CardTitle className="text-2xl gradient-text">
-                    Bekreft bestilling
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div className="space-y-4">
-                      <h3 className="font-semibold text-lg">Valgt tjeneste</h3>
-                      {selectedServiceData && (
-                        <div className="p-4 bg-sky-50 rounded-lg">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <selectedServiceData.icon className="h-5 w-5 text-sky-600" />
-                            <span className="font-medium">{selectedServiceData.name}</span>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            {selectedServiceData.description}
-                          </p>
-                          <div className="flex space-x-2">
-                            <Badge variant="secondary">{selectedServiceData.price}</Badge>
-                            <Badge variant="outline">{selectedServiceData.duration}</Badge>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <h3 className="font-semibold text-lg">Valgt eiendom</h3>
-                      {selectedPropertyData && (
-                        <div className="p-4 bg-sky-50 rounded-lg">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <Home className="h-5 w-5 text-sky-600" />
-                            <span className="font-medium">{selectedPropertyData.name}</span>
-                          </div>
-                          <div className="flex items-center space-x-1 text-muted-foreground mb-2">
-                            <MapPin className="h-4 w-4" />
-                            <span className="text-sm">{selectedPropertyData.address}</span>
-                          </div>
-                          <Badge variant="outline">{selectedPropertyData.type}</Badge>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-4">
-                      <h3 className="font-semibold text-lg">Hyppighet</h3>
-                      {selectedRecurringData && (
-                        <div className="p-4 bg-sky-50 rounded-lg">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <selectedRecurringData.icon className="h-5 w-5 text-sky-600" />
-                            <span className="font-medium">{selectedRecurringData.name}</span>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            {selectedRecurringData.description}
-                          </p>
-                          {selectedRecurringData.discount && (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              {selectedRecurringData.discount}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-4">
-                      <h3 className="font-semibold text-lg">Dato og tid</h3>
-                      <div className="p-4 bg-sky-50 rounded-lg">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <CalendarIcon className="h-5 w-5 text-sky-600" />
-                          <span className="font-medium">Avtalt tid</span>
-                        </div>
-                        {selectedDate && (
-                          <p className="text-sm text-muted-foreground mb-1">
-                            {format(selectedDate, 'EEEE, d. MMMM yyyy', { locale: nb })}
-                          </p>
-                        )}
-                        <div className="flex items-center space-x-1">
-                          <Clock className="h-4 w-4 text-sky-600" />
-                          <span className="text-sm font-medium">{selectedTime}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-center space-x-4 pt-6">
-                    <Button variant="outline" onClick={onClose}>
-                      Avbryt
-                    </Button>
-                    <Button 
-                      onClick={handleBooking}
-                      className="px-8 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700"
-                    >
-                      Bekreft bestilling
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <PropertyForm 
-        isOpen={isPropertyFormOpen}
-        onClose={() => setIsPropertyFormOpen(false)}
-        onSave={handlePropertyFormSave}
-      />
-    </>
+            </ModalFooter>
+          </>
+        )}
+      </ModalContent>
+    </Modal>
   );
 };
 

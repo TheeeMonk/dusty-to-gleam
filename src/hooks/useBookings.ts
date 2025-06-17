@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -144,8 +145,13 @@ export const useBookings = () => {
   useEffect(() => {
     if (!user) return;
 
+    console.log('Setting up real-time subscription for user:', user.id);
+    
+    // Create a unique channel name for this user
+    const channelName = `booking-changes-${user.id}`;
+    
     const channel = supabase
-      .channel('booking-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -160,12 +166,16 @@ export const useBookings = () => {
           fetchBookings();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
+    // Cleanup function to unsubscribe
     return () => {
+      console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id]); // Only depend on user.id to avoid recreating subscription
 
   useEffect(() => {
     fetchBookings();
