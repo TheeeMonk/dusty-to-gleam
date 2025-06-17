@@ -18,7 +18,9 @@ import {
   Plus,
   Home,
   User,
-  Building
+  Building,
+  Edit,
+  PawPrint
 } from 'lucide-react';
 
 interface Cleaning {
@@ -37,6 +39,11 @@ interface Property {
   name: string;
   address: string;
   type: string;
+  rooms?: number;
+  squareMeters?: number;
+  windows?: number;
+  hasPets?: boolean;
+  notes?: string;
 }
 
 interface CustomerDashboardProps {
@@ -51,6 +58,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isPropertyFormOpen, setIsPropertyFormOpen] = useState(false);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   
   const [nextCleaning] = useState<Cleaning | null>({
     id: '1',
@@ -66,13 +74,22 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
       id: '1',
       name: 'Hovedbolig',
       address: 'Dalskroken 19 B, 1405 Langhus',
-      type: 'Enebolig'
+      type: 'Enebolig',
+      rooms: 5,
+      squareMeters: 150,
+      windows: 12,
+      hasPets: true,
+      notes: 'Hund som kan være nervøs for fremmede'
     },
     {
       id: '2',
       name: 'Hytte',
       address: 'Fjellveien 15, 2600 Lillehammer',
-      type: 'Fritidsbolig'
+      type: 'Fritidsbolig',
+      rooms: 3,
+      squareMeters: 80,
+      windows: 8,
+      hasPets: false
     }
   ]);
 
@@ -113,6 +130,26 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
     
     setProperties(prevProperties => [...prevProperties, newProperty]);
     console.log('New property added:', newProperty);
+  };
+
+  const handleUpdateProperty = (updatedProperty: Property) => {
+    setProperties(prevProperties => 
+      prevProperties.map(property => 
+        property.id === updatedProperty.id ? updatedProperty : property
+      )
+    );
+    setEditingProperty(null);
+    console.log('Property updated:', updatedProperty);
+  };
+
+  const handleEditProperty = (property: Property) => {
+    setEditingProperty(property);
+    setIsPropertyFormOpen(true);
+  };
+
+  const handleClosePropertyForm = () => {
+    setIsPropertyFormOpen(false);
+    setEditingProperty(null);
   };
 
   const renderDashboard = () => (
@@ -353,22 +390,69 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {properties.map((property) => (
-          <Card key={property.id} className="wow-card card-hover">
+          <Card key={property.id} className="wow-card card-hover relative group">
             <CardContent className="p-6">
-              <div className="flex items-start space-x-4">
-                <div className="p-4 bg-sky-100 rounded-full">
-                  <Building className="h-8 w-8 text-sky-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-xl mb-2">{property.name}</h3>
-                  <div className="flex items-center space-x-2 text-muted-foreground mb-3">
-                    <MapPin className="h-4 w-4" />
-                    <span>{property.address}</span>
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start space-x-4 flex-1">
+                  <div className="p-4 bg-sky-100 rounded-full">
+                    <Building className="h-8 w-8 text-sky-600" />
                   </div>
-                  <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
-                    {property.type}
-                  </Badge>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-xl mb-2">{property.name}</h3>
+                    <div className="flex items-center space-x-2 text-muted-foreground mb-3">
+                      <MapPin className="h-4 w-4" />
+                      <span>{property.address}</span>
+                    </div>
+                    <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
+                      {property.type}
+                    </Badge>
+                  </div>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEditProperty(property)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Property details */}
+              <div className="space-y-3 pt-4 border-t border-sky-100">
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  {property.rooms && (
+                    <div className="text-center">
+                      <div className="font-medium text-sky-600">{property.rooms}</div>
+                      <div className="text-muted-foreground">Rom</div>
+                    </div>
+                  )}
+                  {property.squareMeters && (
+                    <div className="text-center">
+                      <div className="font-medium text-sky-600">{property.squareMeters}m²</div>
+                      <div className="text-muted-foreground">Kvm</div>
+                    </div>
+                  )}
+                  {property.windows && (
+                    <div className="text-center">
+                      <div className="font-medium text-sky-600">{property.windows}</div>
+                      <div className="text-muted-foreground">Vinduer</div>
+                    </div>
+                  )}
+                </div>
+                
+                {property.hasPets && (
+                  <div className="flex items-center space-x-2 text-sm">
+                    <PawPrint className="h-4 w-4 text-sky-500" />
+                    <span className="text-muted-foreground">Har kjæledyr</span>
+                  </div>
+                )}
+                
+                {property.notes && (
+                  <div className="text-sm text-muted-foreground mt-2">
+                    <strong>Merknader:</strong> {property.notes}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -415,8 +499,10 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
       
       <PropertyForm 
         isOpen={isPropertyFormOpen}
-        onClose={() => setIsPropertyFormOpen(false)}
+        onClose={handleClosePropertyForm}
         onSave={handleAddProperty}
+        onUpdate={handleUpdateProperty}
+        editingProperty={editingProperty}
       />
     </div>
   );

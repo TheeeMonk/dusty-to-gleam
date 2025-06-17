@@ -27,6 +27,11 @@ interface Property {
   name: string;
   address: string;
   type: string;
+  rooms?: number;
+  squareMeters?: number;
+  windows?: number;
+  hasPets?: boolean;
+  notes?: string;
 }
 
 interface BookingModalProps {

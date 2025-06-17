@@ -1,9 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { 
   Select,
   SelectContent,
@@ -25,20 +27,64 @@ interface Property {
   name: string;
   address: string;
   type: string;
+  rooms?: number;
+  squareMeters?: number;
+  windows?: number;
+  hasPets?: boolean;
+  notes?: string;
 }
 
 interface PropertyFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (property: Omit<Property, 'id'>) => void;
+  onUpdate?: (property: Property) => void;
+  editingProperty?: Property | null;
 }
 
-const PropertyForm: React.FC<PropertyFormProps> = ({ isOpen, onClose, onSave }) => {
+const PropertyForm: React.FC<PropertyFormProps> = ({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  onUpdate,
+  editingProperty 
+}) => {
   const [formData, setFormData] = useState({
     name: '',
     address: '',
-    type: ''
+    type: '',
+    rooms: '',
+    squareMeters: '',
+    windows: '',
+    hasPets: false,
+    notes: ''
   });
+
+  useEffect(() => {
+    if (editingProperty) {
+      setFormData({
+        name: editingProperty.name,
+        address: editingProperty.address,
+        type: editingProperty.type,
+        rooms: editingProperty.rooms?.toString() || '',
+        squareMeters: editingProperty.squareMeters?.toString() || '',
+        windows: editingProperty.windows?.toString() || '',
+        hasPets: editingProperty.hasPets || false,
+        notes: editingProperty.notes || ''
+      });
+    } else {
+      setFormData({
+        name: '',
+        address: '',
+        type: '',
+        rooms: '',
+        squareMeters: '',
+        windows: '',
+        hasPets: false,
+        notes: ''
+      });
+    }
+  }, [editingProperty, isOpen]);
 
   const propertyTypes = [
     { value: 'detached', label: 'Enebolig' },
@@ -51,7 +97,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ isOpen, onClose, onSave }) 
     { value: 'retail', label: 'Butikk' }
   ];
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -67,41 +113,55 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ isOpen, onClose, onSave }) 
 
     const selectedType = propertyTypes.find(type => type.value === formData.type);
     
-    onSave({
+    const propertyData = {
       name: formData.name,
       address: formData.address,
-      type: selectedType?.label || formData.type
-    });
+      type: selectedType?.label || formData.type,
+      rooms: formData.rooms ? parseInt(formData.rooms) : undefined,
+      squareMeters: formData.squareMeters ? parseInt(formData.squareMeters) : undefined,
+      windows: formData.windows ? parseInt(formData.windows) : undefined,
+      hasPets: formData.hasPets,
+      notes: formData.notes || undefined
+    };
 
-    // Reset form
-    setFormData({
-      name: '',
-      address: '',
-      type: ''
-    });
-    
-    onClose();
+    if (editingProperty && onUpdate) {
+      onUpdate({
+        ...propertyData,
+        id: editingProperty.id
+      });
+    } else {
+      onSave(propertyData);
+    }
+
+    handleClose();
   };
 
   const handleClose = () => {
     setFormData({
       name: '',
       address: '',
-      type: ''
+      type: '',
+      rooms: '',
+      squareMeters: '',
+      windows: '',
+      hasPets: false,
+      notes: ''
     });
     onClose();
   };
 
+  const isEditing = !!editingProperty;
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl gradient-text text-center flex items-center justify-center space-x-2">
             <Building className="h-6 w-6 text-sky-500" />
-            <span>Legg til ny eiendom</span>
+            <span>{isEditing ? 'Rediger eiendom' : 'Legg til ny eiendom'}</span>
           </DialogTitle>
           <DialogDescription className="text-center">
-            Registrer en ny eiendom for rengjøring
+            {isEditing ? 'Oppdater eiendomsinformasjon' : 'Registrer en ny eiendom for rengjøring'}
           </DialogDescription>
         </DialogHeader>
 
@@ -158,6 +218,80 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ isOpen, onClose, onSave }) 
                 />
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="rooms" className="text-sm font-medium">
+                    Antall rom
+                  </Label>
+                  <Input
+                    id="rooms"
+                    type="number"
+                    placeholder="F.eks. 4"
+                    value={formData.rooms}
+                    onChange={(e) => handleInputChange('rooms', e.target.value)}
+                    className="border-sky-200 focus:border-sky-400"
+                    min="1"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="squareMeters" className="text-sm font-medium">
+                    Kvadratmeter
+                  </Label>
+                  <Input
+                    id="squareMeters"
+                    type="number"
+                    placeholder="F.eks. 120"
+                    value={formData.squareMeters}
+                    onChange={(e) => handleInputChange('squareMeters', e.target.value)}
+                    className="border-sky-200 focus:border-sky-400"
+                    min="1"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="windows" className="text-sm font-medium">
+                    Antall vinduer
+                  </Label>
+                  <Input
+                    id="windows"
+                    type="number"
+                    placeholder="F.eks. 12"
+                    value={formData.windows}
+                    onChange={(e) => handleInputChange('windows', e.target.value)}
+                    className="border-sky-200 focus:border-sky-400"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <Switch
+                    id="hasPets"
+                    checked={formData.hasPets}
+                    onCheckedChange={(checked) => handleInputChange('hasPets', checked)}
+                  />
+                  <Label htmlFor="hasPets" className="text-sm font-medium">
+                    Har du kjæledyr i boligen?
+                  </Label>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes" className="text-sm font-medium">
+                    Spesielle instrukser eller merknader
+                  </Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="F.eks. ekstra oppmerksomhet på bestemte områder, allergier, tilgangsinformasjon..."
+                    value={formData.notes}
+                    onChange={(e) => handleInputChange('notes', e.target.value)}
+                    className="border-sky-200 focus:border-sky-400 min-h-[100px]"
+                    rows={4}
+                  />
+                </div>
+              </div>
+
               <div className="flex justify-end space-x-4 pt-6">
                 <Button 
                   type="button" 
@@ -173,7 +307,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ isOpen, onClose, onSave }) 
                   className="px-6 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700"
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  Lagre eiendom
+                  {isEditing ? 'Oppdater eiendom' : 'Lagre eiendom'}
                 </Button>
               </div>
             </form>
