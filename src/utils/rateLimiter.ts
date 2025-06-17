@@ -4,46 +4,96 @@ interface RateLimitEntry {
   resetTime: number;
 }
 
-export class RateLimiter {
-  private static limits = new Map<string, RateLimitEntry>();
+class RateLimiter {
+  private static instance: RateLimiter;
+  private requests: Map<string, RateLimitEntry> = new Map();
   
-  static check(key: string, maxRequests: number, windowMs: number): boolean {
+  // Rate limit configuration
+  private readonly limits = {
+    api: { requests: 100, windowMs: 60000 }, // 100 requests per minute
+    auth: { requests: 5, windowMs: 300000 }, // 5 auth attempts per 5 minutes
+    form: { requests: 10, windowMs: 60000 }, // 10 form submissions per minute
+  };
+
+  static getInstance(): RateLimiter {
+    if (!RateLimiter.instance) {
+      RateLimiter.instance = new RateLimiter();
+    }
+    return RateLimiter.instance;
+  }
+
+  private getKey(identifier: string, type: string): string {
+    return `${type}:${identifier}`;
+  }
+
+  private cleanup(): void {
     const now = Date.now();
-    const entry = this.limits.get(key);
+    for (const [key, entry] of this.requests.entries()) {
+      if (now > entry.resetTime) {
+        this.requests.delete(key);
+      }
+    }
+  }
+
+  checkLimit(identifier: string, type: keyof typeof this.limits): boolean {
+    this.cleanup();
     
-    if (!entry || now > entry.resetTime) {
-      // Reset or create new entry
-      this.limits.set(key, {
+    const limit = this.limits[type];
+    const key = this.getKey(identifier, type);
+    const now = Date.now();
+    
+    const entry = this.requests.get(key);
+    
+    if (!entry) {
+      // First request
+      this.requests.set(key, {
         count: 1,
-        resetTime: now + windowMs
+        resetTime: now + limit.windowMs
       });
       return true;
     }
     
-    if (entry.count >= maxRequests) {
+    if (now > entry.resetTime) {
+      // Window has expired, reset
+      this.requests.set(key, {
+        count: 1,
+        resetTime: now + limit.windowMs
+      });
+      return true;
+    }
+    
+    if (entry.count >= limit.requests) {
+      // Rate limit exceeded
       return false;
     }
     
+    // Increment counter
     entry.count++;
     return true;
   }
-  
-  static getRetryAfter(key: string): number {
-    const entry = this.limits.get(key);
-    if (!entry) return 0;
+
+  getRemainingRequests(identifier: string, type: keyof typeof this.limits): number {
+    const limit = this.limits[type];
+    const key = this.getKey(identifier, type);
+    const entry = this.requests.get(key);
     
-    return Math.max(0, entry.resetTime - Date.now());
-  }
-  
-  static cleanup() {
-    const now = Date.now();
-    for (const [key, entry] of this.limits.entries()) {
-      if (now > entry.resetTime) {
-        this.limits.delete(key);
-      }
+    if (!entry || Date.now() > entry.resetTime) {
+      return limit.requests;
     }
+    
+    return Math.max(0, limit.requests - entry.count);
+  }
+
+  getResetTime(identifier: string, type: keyof typeof this.limits): number {
+    const key = this.getKey(identifier, type);
+    const entry = this.requests.get(key);
+    
+    if (!entry || Date.now() > entry.resetTime) {
+      return 0;
+    }
+    
+    return entry.resetTime;
   }
 }
 
-// Cleanup old entries every 5 minutes
-setInterval(() => RateLimiter.cleanup(), 5 * 60 * 1000);
+export { RateLimiter };

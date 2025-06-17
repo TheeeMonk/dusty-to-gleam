@@ -16,8 +16,19 @@ console.log('App.tsx: Starting app initialization...');
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: (failureCount, error: any) => {
+        // Don't retry on 4xx errors (client errors)
+        if (error?.status >= 400 && error?.status < 500) {
+          return false;
+        }
+        // Retry up to 2 times for other errors
+        return failureCount < 2;
+      },
       staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false, // Reduce unnecessary requests
+    },
+    mutations: {
+      retry: false, // Don't retry mutations automatically
     },
   },
 });

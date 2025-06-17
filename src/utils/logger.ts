@@ -1,85 +1,70 @@
-export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 
-interface LogEntry {
-  level: LogLevel;
-  message: string;
-  timestamp: string;
-  context?: Record<string, any>;
+interface LogLevel {
+  ERROR: 'error';
+  WARN: 'warn';
+  INFO: 'info';
+  DEBUG: 'debug';
 }
 
+const LOG_LEVELS: LogLevel = {
+  ERROR: 'error',
+  WARN: 'warn',
+  INFO: 'info',
+  DEBUG: 'debug'
+};
+
+// Only log errors and warnings in production
+const isProduction = import.meta.env.PROD;
+const allowedLevels = isProduction 
+  ? [LOG_LEVELS.ERROR, LOG_LEVELS.WARN] 
+  : [LOG_LEVELS.ERROR, LOG_LEVELS.WARN, LOG_LEVELS.INFO, LOG_LEVELS.DEBUG];
+
 class Logger {
-  private isDevelopment = import.meta.env.DEV;
-  
-  private formatMessage(level: LogLevel, message: string, context?: Record<string, any>): LogEntry {
-    return {
-      level,
-      message,
-      timestamp: new Date().toISOString(),
-      context: this.sanitizeContext(context)
-    };
+  private shouldLog(level: string): boolean {
+    return allowedLevels.includes(level as any);
   }
 
-  private sanitizeContext(context?: Record<string, any>): Record<string, any> | undefined {
-    if (!context) return undefined;
+  private sanitizeData(data: any): any {
+    if (!data) return data;
     
-    const sanitized = { ...context };
+    // Remove sensitive information from logs
+    const sensitiveKeys = ['password', 'token', 'api_key', 'secret', 'auth', 'session'];
     
-    // Remove sensitive fields
-    const sensitiveFields = ['password', 'token', 'apiKey', 'secret', 'authorization'];
-    sensitiveFields.forEach(field => {
-      if (sanitized[field]) {
-        sanitized[field] = '[REDACTED]';
+    if (typeof data === 'object') {
+      const sanitized = { ...data };
+      for (const key of sensitiveKeys) {
+        if (key in sanitized) {
+          sanitized[key] = '[REDACTED]';
+        }
       }
-    });
-    
-    return sanitized;
-  }
-
-  private log(level: LogLevel, message: string, context?: Record<string, any>) {
-    const entry = this.formatMessage(level, message, context);
-    
-    // Only log to console in development
-    if (this.isDevelopment) {
-      console[level === 'debug' ? 'log' : level](entry.message, entry.context || '');
+      return sanitized;
     }
     
-    // In production, we would send to a logging service here
-    // For now, we'll store critical errors locally for debugging
-    if (level === 'error' && !this.isDevelopment) {
-      this.storeErrorLocally(entry);
+    return data;
+  }
+
+  error(message: string, data?: any) {
+    if (this.shouldLog(LOG_LEVELS.ERROR)) {
+      console.error(`[ERROR] ${message}`, this.sanitizeData(data));
     }
   }
 
-  private storeErrorLocally(entry: LogEntry) {
-    try {
-      const errors = JSON.parse(localStorage.getItem('app_errors') || '[]');
-      errors.push(entry);
-      
-      // Keep only last 50 errors
-      if (errors.length > 50) {
-        errors.splice(0, errors.length - 50);
-      }
-      
-      localStorage.setItem('app_errors', JSON.stringify(errors));
-    } catch (e) {
-      // Silent fail if localStorage is not available
+  warn(message: string, data?: any) {
+    if (this.shouldLog(LOG_LEVELS.WARN)) {
+      console.warn(`[WARN] ${message}`, this.sanitizeData(data));
     }
   }
 
-  error(message: string, context?: Record<string, any>) {
-    this.log('error', message, context);
+  info(message: string, data?: any) {
+    if (this.shouldLog(LOG_LEVELS.INFO)) {
+      console.info(`[INFO] ${message}`, this.sanitizeData(data));
+    }
   }
 
-  warn(message: string, context?: Record<string, any>) {
-    this.log('warn', message, context);
-  }
-
-  info(message: string, context?: Record<string, any>) {
-    this.log('info', message, context);
-  }
-
-  debug(message: string, context?: Record<string, any>) {
-    this.log('debug', message, context);
+  debug(message: string, data?: any) {
+    if (this.shouldLog(LOG_LEVELS.DEBUG)) {
+      console.debug(`[DEBUG] ${message}`, this.sanitizeData(data));
+    }
   }
 }
 
