@@ -36,7 +36,13 @@ export const useBookings = () => {
 
       if (error) throw error;
       
-      setBookings(data || []);
+      // Type assertion to ensure status is properly typed
+      const typedBookings = (data || []).map(booking => ({
+        ...booking,
+        status: booking.status as Booking['status']
+      }));
+      
+      setBookings(typedBookings);
     } catch (err) {
       console.error('Error fetching bookings:', err);
       setError(err instanceof Error ? err.message : 'En feil oppstod');
@@ -69,8 +75,14 @@ export const useBookings = () => {
 
       if (error) throw error;
 
-      setBookings(prev => [data, ...prev]);
-      return data;
+      // Type assertion for the returned data
+      const typedBooking = {
+        ...data,
+        status: data.status as Booking['status']
+      };
+
+      setBookings(prev => [typedBooking, ...prev]);
+      return typedBooking;
     } catch (err) {
       console.error('Error creating booking:', err);
       setError(err instanceof Error ? err.message : 'En feil oppstod');
@@ -94,12 +106,18 @@ export const useBookings = () => {
 
       if (error) throw error;
 
+      // Type assertion for the returned data
+      const typedBooking = {
+        ...data,
+        status: data.status as Booking['status']
+      };
+
       setBookings(prev => 
         prev.map(booking => 
-          booking.id === id ? data : booking
+          booking.id === id ? typedBooking : booking
         )
       );
-      return data;
+      return typedBooking;
     } catch (err) {
       console.error('Error updating booking:', err);
       setError(err instanceof Error ? err.message : 'En feil oppstod');

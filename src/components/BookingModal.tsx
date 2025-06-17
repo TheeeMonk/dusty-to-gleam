@@ -132,16 +132,19 @@ const BookingModal: React.FC<BookingModalProps> = ({
     if (onAddProperty) {
       try {
         const savedProperty = await onAddProperty(newProperty);
-        if (savedProperty) {
-          console.log('New property saved:', savedProperty);
-          toast.success('Ny eiendom lagt til!');
-        }
+        console.log('New property saved:', savedProperty);
+        toast.success('Ny eiendom lagt til!');
+        setIsPropertyFormOpen(false);
+        return savedProperty;
       } catch (error) {
         console.error('Error saving property:', error);
         toast.error('Kunne ikke lagre eiendom');
+        throw error;
       }
+    } else {
+      setIsPropertyFormOpen(false);
+      throw new Error('No add property handler provided');
     }
-    setIsPropertyFormOpen(false);
   };
 
   const handleBooking = async () => {
