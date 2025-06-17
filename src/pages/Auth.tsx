@@ -9,12 +9,19 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { Sparkles, Mail, Lock, User, Phone } from 'lucide-react';
+import { useProperties } from '@/hooks/useProperties';
+import { useAuth } from '@/contexts/AuthContext';
+import RegistrationForm from '@/components/RegistrationForm';
+import type { RegistrationData } from '@/components/RegistrationForm';
 
 const Auth = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { addProperty } = useProperties();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [showPropertyRegistration, setShowPropertyRegistration] = useState(false);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -36,6 +43,13 @@ const Auth = () => {
     };
     checkUser();
   }, [navigate]);
+
+  // If user just signed up and we need to show property registration
+  useEffect(() => {
+    if (user && showPropertyRegistration) {
+      // User is now authenticated, show property registration
+    }
+  }, [user, showPropertyRegistration]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,9 +93,38 @@ const Auth = () => {
       setError(error.message);
     } else {
       setMessage('Sjekk e-posten din for bekreftelseslenke!');
+      // After successful signup, show property registration
+      setShowPropertyRegistration(true);
     }
     setLoading(false);
   };
+
+  const handlePropertyRegistration = async (data: RegistrationData) => {
+    if (!user) return;
+
+    const propertyData = {
+      name: data.fullName + 's bolig',
+      address: data.address + ', ' + data.postalCode + ' ' + data.municipality,
+      type: data.houseType,
+      rooms: data.rooms,
+      square_meters: data.squareMeters,
+      windows: parseInt(data.windows),
+      has_pets: data.pets,
+      notes: `Etasjer: ${data.floors}, Bad: ${data.bathrooms}`
+    };
+
+    const result = await addProperty(propertyData);
+    if (result) {
+      navigate('/');
+    }
+  };
+
+  // If we're showing property registration and user is authenticated
+  if (showPropertyRegistration && user) {
+    return (
+      <RegistrationForm onComplete={handlePropertyRegistration} />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 flex items-center justify-center p-6">
@@ -116,6 +159,11 @@ const Auth = () => {
                 <Alert className="mb-4 border-green-200 bg-green-50">
                   <AlertDescription className="text-green-700">
                     {message}
+                    {showPropertyRegistration && (
+                      <div className="mt-2">
+                        <p className="font-medium">Neste steg: Registrer din bolig</p>
+                      </div>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}
