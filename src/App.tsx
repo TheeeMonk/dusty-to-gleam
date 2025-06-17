@@ -38,34 +38,46 @@ const App = () => {
   console.log('App.tsx: Current URL:', window.location.href);
   console.log('App.tsx: Current pathname:', window.location.pathname);
   
-  return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <AuthProvider>
-            <Toaster />
-            <SonnerToaster />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/auth" element={
-                  <>
-                    {console.log('App.tsx: Rendering Auth route')}
-                    <Auth />
-                  </>
-                } />
-                <Route path="/" element={
-                  <ProtectedRoute>
-                    <Index />
-                  </ProtectedRoute>
-                } />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </AuthProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
-  );
+  try {
+    return (
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <AuthProvider>
+              <Toaster />
+              <SonnerToaster />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/auth" element={
+                    <>
+                      {console.log('App.tsx: Rendering Auth route')}
+                      <Auth />
+                    </>
+                  } />
+                  <Route path="/" element={
+                    <ProtectedRoute>
+                      <Index />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </AuthProvider>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    );
+  } catch (error) {
+    console.error('App.tsx: Error rendering App:', error);
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-red-50">
+        <div className="text-center p-6">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Application Error</h1>
+          <p className="text-red-500">Something went wrong. Please check the console for details.</p>
+        </div>
+      </div>
+    );
+  }
 };
 
 console.log('App.tsx: App component defined and ready for export');
