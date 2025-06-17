@@ -30,12 +30,17 @@ export const useBookings = () => {
     
     try {
       setLoading(true);
+      console.log('Fetching bookings for user:', user.id);
+      
       const { data, error } = await supabase
         .from('bookings')
         .select('*')
+        .eq('user_id', user.id) // Add user filter
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      console.log('Fetched bookings:', data);
       
       // Type assertion to ensure status is properly typed
       const typedBookings = (data || []).map(booking => ({
@@ -65,17 +70,21 @@ export const useBookings = () => {
     if (!user) return null;
 
     try {
+      console.log('Creating booking with data:', bookingData);
+      
       const { data, error } = await supabase
         .from('bookings')
         .insert([{
           ...bookingData,
           user_id: user.id,
-          status: 'pending'
+          status: 'confirmed' // Change from 'pending' to 'confirmed'
         }])
         .select()
         .single();
 
       if (error) throw error;
+
+      console.log('Created booking:', data);
 
       // Type assertion for the returned data
       const typedBooking = {
@@ -84,6 +93,10 @@ export const useBookings = () => {
       };
 
       setBookings(prev => [typedBooking, ...prev]);
+      
+      // Refetch to ensure we have the latest data
+      await fetchBookings();
+      
       return typedBooking;
     } catch (err) {
       console.error('Error creating booking:', err);

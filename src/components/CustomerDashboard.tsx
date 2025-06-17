@@ -47,10 +47,31 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
   const [isPropertyFormOpen, setIsPropertyFormOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<any>(null);
 
-  // Get the next scheduled booking
+  // Debug logging
+  console.log('All bookings:', bookings);
+  console.log('Bookings loading:', bookingsLoading);
+
+  // Get the next scheduled booking - now includes both confirmed and pending bookings
   const nextCleaning = bookings
-    .filter(booking => booking.status === 'confirmed' && booking.scheduled_date)
+    .filter(booking => {
+      const hasScheduledDate = booking.scheduled_date;
+      const isUpcoming = booking.status === 'confirmed' || booking.status === 'pending';
+      const isFuture = booking.scheduled_date ? new Date(booking.scheduled_date) >= new Date() : false;
+      
+      console.log('Booking filter check:', {
+        id: booking.id,
+        status: booking.status,
+        scheduled_date: booking.scheduled_date,
+        hasScheduledDate,
+        isUpcoming,
+        isFuture
+      });
+      
+      return hasScheduledDate && isUpcoming && isFuture;
+    })
     .sort((a, b) => new Date(a.scheduled_date!).getTime() - new Date(b.scheduled_date!).getTime())[0];
+
+  console.log('Next cleaning found:', nextCleaning);
 
   // Get previous completed cleanings
   const previousCleanings = bookings
@@ -125,6 +146,19 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
         </p>
       </div>
 
+      {/* Debug info - remove this in production */}
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardContent className="p-4">
+          <p className="text-sm">Debug: {bookings.length} bookinger funnet</p>
+          <p className="text-sm">Neste rengjøring: {nextCleaning ? 'Funnet' : 'Ikke funnet'}</p>
+          {bookings.length > 0 && (
+            <div className="text-xs mt-2">
+              <p>Siste booking: Status={bookings[0].status}, Dato={bookings[0].scheduled_date}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Next Cleaning Card */}
       <Card className="wow-card card-hover animate-fade-in shadow-2xl rounded-3xl border-0 bg-gradient-to-br from-white/90 via-sky-50/90 to-blue-50/90 backdrop-blur-xl">
         <CardHeader className="text-center">
@@ -154,7 +188,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
                   <div className="flex items-center justify-center space-x-2">
                     <Clock className="h-5 w-5 text-sky-500" />
                     <span className="font-semibold text-lg">
-                      {nextCleaning.estimated_duration} min
+                      {nextCleaning.scheduled_time || 'Ikke angitt'}
                     </span>
                   </div>
                 </div>
@@ -168,6 +202,13 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
               
               <Badge variant="secondary" className="bg-sky-100 text-sky-800 text-lg px-4 py-2">
                 {nextCleaning.service_type}
+              </Badge>
+              
+              <Badge 
+                variant={nextCleaning.status === 'confirmed' ? 'default' : 'outline'} 
+                className="ml-2"
+              >
+                {nextCleaning.status === 'confirmed' ? 'Bekreftet' : 'Venter på bekreftelse'}
               </Badge>
               
               <div className="flex justify-center">
