@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -130,6 +129,20 @@ export const useEmployeeBookings = () => {
         updated_at: now
       });
       
+      // First check current booking status
+      const { data: currentBooking, error: fetchError } = await supabase
+        .from('bookings')
+        .select('status, assigned_employee_id')
+        .eq('id', bookingId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching current booking:', fetchError);
+        throw fetchError;
+      }
+
+      console.log('Current booking status:', currentBooking);
+
       const { data, error } = await supabase
         .from('bookings')
         .update({
@@ -143,7 +156,7 @@ export const useEmployeeBookings = () => {
         .select();
 
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('Supabase error during update:', error);
         throw error;
       }
 
