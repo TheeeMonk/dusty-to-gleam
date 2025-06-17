@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { useEmployeeBookings } from '@/hooks/useEmployeeBookings';
 import { useJobImages } from '@/hooks/useJobImages';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { 
   Clock, 
   MapPin, 
@@ -25,6 +26,7 @@ import { nb } from 'date-fns/locale';
 const EmployeeDashboard: React.FC = () => {
   const { t } = useLanguage();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const { bookings, loading, confirmBooking, startJob, completeJob } = useEmployeeBookings();
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const { uploadImage, uploading } = useJobImages(selectedBookingId || undefined);
@@ -63,14 +65,22 @@ const EmployeeDashboard: React.FC = () => {
   console.log('Upcoming jobs:', upcomingJobs);
 
   const handleConfirmBooking = async (jobId: string) => {
-    await confirmBooking(jobId);
+    console.log('Attempting to confirm booking:', jobId);
+    try {
+      await confirmBooking(jobId);
+      console.log('Booking confirmed successfully');
+    } catch (error) {
+      console.error('Error confirming booking:', error);
+    }
   };
 
   const handleStartJob = async (jobId: string) => {
+    console.log('Starting job:', jobId);
     await startJob(jobId);
   };
 
   const handleFinishJob = async (jobId: string) => {
+    console.log('Finishing job:', jobId);
     await completeJob(jobId);
   };
 
@@ -124,88 +134,93 @@ const EmployeeDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen p-4 space-y-6">
+    <div className="min-h-screen p-2 sm:p-4 space-y-4 sm:space-y-6 pb-20">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold gradient-text mb-2">
+        {/* Header - Mobile optimized */}
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold gradient-text mb-2">
             {t('dashboard.employee')}
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-sm sm:text-lg text-muted-foreground px-4">
             God morgen! La oss gjøre hjemmene rene og fine ✨
           </p>
         </div>
 
-        {/* Debug info */}
-        <div className="mb-4 p-4 bg-gray-100 rounded">
-          <p className="text-sm">Debug: Totalt {bookings.length} bookinger funnet</p>
-          <p className="text-sm">Dagens oppdrag: {todaysJobs.length}</p>
-          <p className="text-sm">Status fordeling: {JSON.stringify(bookings.reduce((acc, b) => { acc[b.status] = (acc[b.status] || 0) + 1; return acc; }, {} as any))}</p>
-        </div>
+        {/* Debug info - Hidden on mobile */}
+        {!isMobile && (
+          <div className="mb-4 p-4 bg-gray-100 rounded text-xs">
+            <p>Debug: Totalt {bookings.length} bookinger funnet</p>
+            <p>Dagens oppdrag: {todaysJobs.length}</p>
+            <p>Status fordeling: {JSON.stringify(bookings.reduce((acc, b) => { acc[b.status] = (acc[b.status] || 0) + 1; return acc; }, {} as any))}</p>
+          </div>
+        )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Stats Cards - Mobile responsive grid */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
           <Card className="glass-effect">
-            <CardContent className="p-4 text-center">
-              <CalendarDays className="h-8 w-8 text-dusty-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold">{todaysJobs.length}</div>
-              <p className="text-sm text-muted-foreground">Dagens oppdrag</p>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <CalendarDays className="h-6 w-6 sm:h-8 sm:w-8 text-dusty-500 mx-auto mb-1 sm:mb-2" />
+              <div className="text-lg sm:text-2xl font-bold">{todaysJobs.length}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground">I dag</p>
             </CardContent>
           </Card>
           
           <Card className="glass-effect">
-            <CardContent className="p-4 text-center">
-              <Timer className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold">{activeJobs.length}</div>
-              <p className="text-sm text-muted-foreground">Aktive oppdrag</p>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <Timer className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 mx-auto mb-1 sm:mb-2" />
+              <div className="text-lg sm:text-2xl font-bold">{activeJobs.length}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Aktive</p>
             </CardContent>
           </Card>
           
           <Card className="glass-effect">
-            <CardContent className="p-4 text-center">
-              <Square className="h-8 w-8 text-green-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold">{completedToday}</div>
-              <p className="text-sm text-muted-foreground">Fullført i dag</p>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <Square className="h-6 w-6 sm:h-8 sm:w-8 text-green-500 mx-auto mb-1 sm:mb-2" />
+              <div className="text-lg sm:text-2xl font-bold">{completedToday}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Fullført</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Today's Jobs */}
-        <Card className="glass-effect card-hover mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-dusty-500" />
+        {/* Today's Jobs - Mobile optimized */}
+        <Card className="glass-effect card-hover mb-4 sm:mb-6">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-dusty-500" />
               <span>{t('dashboard.todaysJobs')}</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0">
             {todaysJobs.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <CalendarDays className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Ingen oppdrag planlagt for i dag</p>
+              <div className="text-center py-6 sm:py-8 text-muted-foreground">
+                <CalendarDays className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-sm sm:text-base">Ingen oppdrag planlagt for i dag</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {todaysJobs.map((job) => (
-                  <div key={job.id} className="bg-white p-4 rounded-lg border shadow-sm">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                  <div key={job.id} className="bg-white p-3 sm:p-4 rounded-lg border shadow-sm">
+                    <div className="space-y-3">
+                      {/* Job Info */}
                       <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{job.customer_email}</span>
-                          <Badge className={getStatusColor(job.status)}>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <div className="flex items-center space-x-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium text-sm sm:text-base">{job.customer_email}</span>
+                          </div>
+                          <Badge className={`${getStatusColor(job.status)} text-xs w-fit`}>
                             {getStatusText(job.status)}
                           </Badge>
                         </div>
                         
-                        <div className="flex items-center space-x-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{job.property_address}</span>
+                        <div className="flex items-start space-x-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <span className="text-xs sm:text-sm break-words">{job.property_address}</span>
                         </div>
                         
                         <div className="flex items-center space-x-2">
                           <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">
+                          <span className="text-xs sm:text-sm">
                             {formatTime(job.scheduled_time)} - {job.service_type}
                           </span>
                         </div>
@@ -213,25 +228,27 @@ const EmployeeDashboard: React.FC = () => {
                         {job.special_instructions && (
                           <div className="flex items-start space-x-2">
                             <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-xs sm:text-sm text-muted-foreground break-words">
                               {job.special_instructions}
                             </span>
                           </div>
                         )}
 
                         {job.start_time && (
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-xs sm:text-sm text-muted-foreground">
                             Startet: {format(new Date(job.start_time), 'HH:mm')}
                             {job.end_time && ` • Fullført: ${format(new Date(job.end_time), 'HH:mm')}`}
                           </div>
                         )}
                       </div>
 
+                      {/* Action Buttons - Mobile stack */}
                       <div className="flex flex-col space-y-2">
                         {job.status === 'pending' && (
                           <Button 
                             onClick={() => handleConfirmBooking(job.id)}
-                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 w-full text-sm"
+                            size={isMobile ? "sm" : "default"}
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
                             Bekreft booking
@@ -241,7 +258,8 @@ const EmployeeDashboard: React.FC = () => {
                         {(job.status === 'confirmed') && (
                           <Button 
                             onClick={() => handleStartJob(job.id)}
-                            className="bg-gradient-to-r from-dusty-500 to-dirty-500 hover:from-dusty-600 hover:to-dirty-600"
+                            className="bg-gradient-to-r from-dusty-500 to-dirty-500 hover:from-dusty-600 hover:to-dirty-600 w-full text-sm"
+                            size={isMobile ? "sm" : "default"}
                           >
                             <Play className="h-4 w-4 mr-2" />
                             {t('employee.startCleaning')}
@@ -249,20 +267,23 @@ const EmployeeDashboard: React.FC = () => {
                         )}
                         
                         {job.status === 'in_progress' && (
-                          <>
+                          <div className="space-y-2">
                             <Button 
                               onClick={() => handleFinishJob(job.id)}
                               variant="default"
+                              className="w-full text-sm"
+                              size={isMobile ? "sm" : "default"}
                             >
                               <Square className="h-4 w-4 mr-2" />
                               {t('employee.finishCleaning')}
                             </Button>
-                            <div className="flex space-x-1">
+                            <div className="flex space-x-2">
                               <Button 
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => handleImageUpload(job.id, 'before')}
                                 disabled={uploading}
+                                className="flex-1 text-xs"
                               >
                                 <Camera className="h-3 w-3 mr-1" />
                                 Før
@@ -272,17 +293,18 @@ const EmployeeDashboard: React.FC = () => {
                                 size="sm"
                                 onClick={() => handleImageUpload(job.id, 'after')}
                                 disabled={uploading}
+                                className="flex-1 text-xs"
                               >
                                 <Camera className="h-3 w-3 mr-1" />
                                 Etter
                               </Button>
                             </div>
-                          </>
+                          </div>
                         )}
                         
                         {job.status === 'completed' && (
                           <div className="text-center">
-                            <Badge variant="default" className="bg-green-500">
+                            <Badge variant="default" className="bg-green-500 text-xs">
                               ✓ Fullført
                             </Badge>
                           </div>
@@ -296,32 +318,32 @@ const EmployeeDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Upcoming Jobs */}
+        {/* Upcoming Jobs - Mobile optimized */}
         <Card className="glass-effect card-hover">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <CalendarDays className="h-5 w-5 text-dirty-500" />
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
+              <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-dirty-500" />
               <span>{t('dashboard.upcomingJobs')}</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0">
             {upcomingJobs.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <CalendarDays className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Ingen kommende oppdrag</p>
+              <div className="text-center py-6 sm:py-8 text-muted-foreground">
+                <CalendarDays className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-sm sm:text-base">Ingen kommende oppdrag</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {upcomingJobs.map((job) => (
-                  <div key={job.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={job.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 rounded-lg space-y-2 sm:space-y-0">
                     <div className="space-y-1">
-                      <div className="font-medium">{job.customer_email}</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="font-medium text-sm sm:text-base">{job.customer_email}</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground">
                         {formatDate(job.scheduled_date!)} {formatTime(job.scheduled_time)} - {job.service_type}
                       </div>
-                      <div className="text-sm text-muted-foreground">{job.property_address}</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground break-words">{job.property_address}</div>
                     </div>
-                    <Badge variant="outline">{getStatusText(job.status)}</Badge>
+                    <Badge variant="outline" className="text-xs w-fit">{getStatusText(job.status)}</Badge>
                   </div>
                 ))}
               </div>

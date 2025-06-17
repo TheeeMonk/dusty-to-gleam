@@ -95,54 +95,97 @@ export const useEmployeeBookings = () => {
     } catch (err) {
       console.error('Error fetching employee bookings:', err);
       setError(err instanceof Error ? err.message : 'En feil oppstod');
+      toast({
+        title: 'Feil',
+        description: 'Kunne ikke laste bookinger',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const confirmBooking = async (bookingId: string) => {
+    console.log('confirmBooking called with ID:', bookingId);
+    console.log('Current user:', user?.id);
+    
+    if (!user) {
+      console.error('No user found for booking confirmation');
+      toast({
+        title: 'Feil',
+        description: 'Du må være logget inn for å bekrefte bookinger',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     try {
       const now = new Date().toISOString();
+      console.log('Updating booking with:', {
+        bookingId,
+        status: 'confirmed',
+        assigned_employee_id: user.id,
+        approved_at: now,
+        approved_by: user.id,
+        updated_at: now
+      });
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('bookings')
         .update({
           status: 'confirmed',
-          assigned_employee_id: user?.id,
+          assigned_employee_id: user.id,
           approved_at: now,
-          approved_by: user?.id,
+          approved_by: user.id,
           updated_at: now
         })
-        .eq('id', bookingId);
+        .eq('id', bookingId)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Booking updated successfully:', data);
 
       toast({
         title: 'Booking bekreftet',
         description: 'Bookingen er bekreftet og tildelt deg.',
       });
 
+      // Refresh bookings list
       await fetchBookings();
     } catch (err) {
       console.error('Error confirming booking:', err);
       toast({
         title: 'Feil',
-        description: 'Kunne ikke bekrefte bookingen.',
+        description: `Kunne ikke bekrefte bookingen: ${err instanceof Error ? err.message : 'Ukjent feil'}`,
         variant: 'destructive'
       });
     }
   };
 
   const startJob = async (bookingId: string) => {
+    if (!user) {
+      toast({
+        title: 'Feil',
+        description: 'Du må være logget inn',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     try {
       const now = new Date().toISOString();
+      console.log('Starting job:', bookingId);
       
       const { error } = await supabase
         .from('bookings')
         .update({
           status: 'in_progress',
           start_time: now,
-          assigned_employee_id: user?.id,
+          assigned_employee_id: user.id,
           updated_at: now
         })
         .eq('id', bookingId);
@@ -168,6 +211,7 @@ export const useEmployeeBookings = () => {
   const completeJob = async (bookingId: string, employeeNotes?: string) => {
     try {
       const now = new Date().toISOString();
+      console.log('Completing job:', bookingId);
       
       // Get the booking to calculate actual duration
       const booking = bookings.find(b => b.id === bookingId);
