@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,17 +20,32 @@ const Index = () => {
   const [userType, setUserType] = useState<'customer' | 'employee' | null>(null);
   const [registrationData, setRegistrationData] = useState<RegistrationData | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [forcePortalType, setForcePortalType] = useState<'customer' | 'employee' | null>(null);
 
   console.log('Current app state:', appState);
   console.log('Current user type:', userType);
   console.log('User authenticated:', !!user);
   console.log('User roles:', userRoles);
+  console.log('Force portal type:', forcePortalType);
 
   useEffect(() => {
     // If user is authenticated and roles are loaded, determine which dashboard to show
     if (user && !loading && !rolesLoading) {
       console.log('User is authenticated, checking roles...');
       
+      // If user has forced a specific portal type, use that
+      if (forcePortalType) {
+        if (forcePortalType === 'employee') {
+          console.log('Forcing employee dashboard');
+          setAppState('employeeDashboard');
+        } else {
+          console.log('Forcing customer dashboard');
+          setAppState('customerDashboard');
+        }
+        return;
+      }
+      
+      // Otherwise, use role-based logic
       if (isEmployee()) {
         console.log('User is employee, going to employee dashboard');
         setAppState('employeeDashboard');
@@ -40,7 +54,7 @@ const Index = () => {
         setAppState('customerDashboard');
       }
     }
-  }, [user, loading, rolesLoading, userRoles, isEmployee]);
+  }, [user, loading, rolesLoading, userRoles, isEmployee, forcePortalType]);
 
   const handleContinueFromIntro = () => {
     console.log('Continuing from intro screen');
@@ -67,16 +81,21 @@ const Index = () => {
     console.log('Registration completed with data:', data);
     setRegistrationData(data);
     setAppState('customerDashboard');
+    setForcePortalType('customer');
     
     console.log('Registration data to save to Supabase:', data);
   };
 
   const handleSwitchToEmployee = () => {
+    console.log('Switching to employee portal');
+    setForcePortalType('employee');
     setAppState('employeeDashboard');
     setActiveTab('dashboard');
   };
 
   const handleSwitchToCustomer = () => {
+    console.log('Switching to customer portal');
+    setForcePortalType('customer');
     setAppState('customerDashboard');
     setActiveTab('dashboard');
   };
@@ -99,7 +118,8 @@ const Index = () => {
 
   console.log('About to render component for state:', appState);
 
-  const currentUserRole = isEmployee() ? 'employee' : 'customer';
+  // Determine current user role based on forced portal type or actual roles
+  const currentUserRole = forcePortalType || (isEmployee() ? 'employee' : 'customer');
 
   return (
     <LanguageProvider>

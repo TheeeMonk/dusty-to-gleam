@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -53,7 +52,12 @@ export const useBookings = () => {
       if (error) throw error;
 
       console.log('Fetched bookings for user:', user.id, data);
-      setBookings(data || []);
+      // Ensure status is properly typed
+      const typedBookings = (data || []).map(booking => ({
+        ...booking,
+        status: booking.status as Booking['status']
+      }));
+      setBookings(typedBookings);
     } catch (err) {
       console.error('Error fetching bookings:', err);
       setError(err instanceof Error ? err.message : 'En feil oppstod');
