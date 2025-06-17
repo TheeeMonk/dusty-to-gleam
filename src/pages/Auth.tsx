@@ -9,11 +9,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { Sparkles, Mail, Lock, User, Phone } from 'lucide-react';
-import { RateLimiter } from '@/utils/rateLimiter';
-import { InputSanitizer } from '@/utils/inputSanitizer';
 
 const Auth = () => {
-  console.log('Auth component rendering');
+  console.log('Auth component is rendering');
   
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -30,29 +28,16 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
 
-  console.log('Auth form states:', { loginEmail, signupEmail, loading, error, message });
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Login attempt started');
     
-    // Rate limiting check
-    if (!RateLimiter.check(`login:${loginEmail}`, 5, 300000)) {
-      setError('For mange påloggingsforsøk. Prøv igjen senere.');
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
-      const sanitizedEmail = InputSanitizer.sanitizeEmail(loginEmail);
-      if (!sanitizedEmail) {
-        throw new Error('Ugyldig e-postadresse');
-      }
-
       const { error } = await supabase.auth.signInWithPassword({
-        email: sanitizedEmail,
+        email: loginEmail,
         password: loginPassword,
       });
 
@@ -75,39 +60,21 @@ const Auth = () => {
     e.preventDefault();
     console.log('Signup attempt started');
     
-    // Rate limiting check
-    if (!RateLimiter.check(`signup:${signupEmail}`, 3, 300000)) {
-      setError('For mange registreringsforsøk. Prøv igjen senere.');
-      return;
-    }
-
     setLoading(true);
     setError(null);
     setMessage(null);
 
     try {
-      const sanitizedEmail = InputSanitizer.sanitizeEmail(signupEmail);
-      const sanitizedName = InputSanitizer.sanitizeText(fullName);
-      const sanitizedPhone = InputSanitizer.sanitizePhone(phone);
-
-      if (!sanitizedEmail) {
-        throw new Error('Ugyldig e-postadresse');
-      }
-
-      if (!sanitizedName) {
-        throw new Error('Fullt navn er påkrevd');
-      }
-
       const redirectUrl = `${window.location.origin}/`;
 
       const { error } = await supabase.auth.signUp({
-        email: sanitizedEmail,
+        email: signupEmail,
         password: signupPassword,
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            full_name: sanitizedName,
-            phone: sanitizedPhone,
+            full_name: fullName,
+            phone: phone,
           }
         }
       });
