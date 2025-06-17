@@ -11,55 +11,70 @@ export type Database = {
     Tables: {
       bookings: {
         Row: {
+          actual_duration: number | null
           approved_at: string | null
           approved_by: string | null
           assigned_employee_id: string | null
           created_at: string
+          employee_notes: string | null
+          end_time: string | null
           estimated_duration: number | null
           estimated_price_max: number | null
           estimated_price_min: number | null
           id: string
+          notes: string | null
           property_id: string
           scheduled_date: string | null
           scheduled_time: string | null
           service_type: string
           special_instructions: string | null
+          start_time: string | null
           status: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          actual_duration?: number | null
           approved_at?: string | null
           approved_by?: string | null
           assigned_employee_id?: string | null
           created_at?: string
+          employee_notes?: string | null
+          end_time?: string | null
           estimated_duration?: number | null
           estimated_price_max?: number | null
           estimated_price_min?: number | null
           id?: string
+          notes?: string | null
           property_id: string
           scheduled_date?: string | null
           scheduled_time?: string | null
           service_type: string
           special_instructions?: string | null
+          start_time?: string | null
           status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          actual_duration?: number | null
           approved_at?: string | null
           approved_by?: string | null
           assigned_employee_id?: string | null
           created_at?: string
+          employee_notes?: string | null
+          end_time?: string | null
           estimated_duration?: number | null
           estimated_price_max?: number | null
           estimated_price_min?: number | null
           id?: string
+          notes?: string | null
           property_id?: string
           scheduled_date?: string | null
           scheduled_time?: string | null
           service_type?: string
           special_instructions?: string | null
+          start_time?: string | null
           status?: string
           updated_at?: string
           user_id?: string
@@ -70,6 +85,82 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_images: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          image_type: string
+          image_url: string
+          uploaded_by: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          image_type: string
+          image_url: string
+          uploaded_by: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          image_type?: string
+          image_url?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_images_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_messages: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          message: string
+          message_type: string | null
+          read_by_customer: boolean | null
+          read_by_employee: boolean | null
+          sender_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          message: string
+          message_type?: string | null
+          read_by_customer?: boolean | null
+          read_by_employee?: boolean | null
+          sender_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          message_type?: string | null
+          read_by_customer?: boolean | null
+          read_by_employee?: boolean | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_messages_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]
