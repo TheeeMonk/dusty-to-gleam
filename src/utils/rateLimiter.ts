@@ -35,6 +35,46 @@ class RateLimiter {
     }
   }
 
+  /**
+   * Static method for easier usage - checks rate limit with custom parameters
+   */
+  static check(identifier: string, maxRequests: number, windowMs: number): boolean {
+    const instance = RateLimiter.getInstance();
+    instance.cleanup();
+    
+    const key = `custom:${identifier}`;
+    const now = Date.now();
+    
+    const entry = instance.requests.get(key);
+    
+    if (!entry) {
+      // First request
+      instance.requests.set(key, {
+        count: 1,
+        resetTime: now + windowMs
+      });
+      return true;
+    }
+    
+    if (now > entry.resetTime) {
+      // Window has expired, reset
+      instance.requests.set(key, {
+        count: 1,
+        resetTime: now + windowMs
+      });
+      return true;
+    }
+    
+    if (entry.count >= maxRequests) {
+      // Rate limit exceeded
+      return false;
+    }
+    
+    // Increment counter
+    entry.count++;
+    return true;
+  }
+
   checkLimit(identifier: string, type: keyof typeof this.limits): boolean {
     this.cleanup();
     

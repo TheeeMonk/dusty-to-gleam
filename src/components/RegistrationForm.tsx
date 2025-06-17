@@ -61,39 +61,25 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
     const newErrors: Partial<RegistrationData> = {};
 
     try {
-      // Sanitize and validate inputs
+      // Validate required text fields
       if (!formData.fullName.trim()) {
         newErrors.fullName = t('form.required');
-      } else {
-        InputSanitizer.sanitizeText(formData.fullName);
       }
 
       if (!formData.phone.trim()) {
         newErrors.phone = t('form.required');
-      } else {
-        try {
-          InputSanitizer.sanitizePhone(formData.phone);
-        } catch (error) {
-          newErrors.phone = 'Invalid phone number format';
-        }
       }
 
       if (!formData.address.trim()) {
         newErrors.address = t('form.required');
-      } else {
-        InputSanitizer.sanitizeAddress(formData.address);
       }
 
       if (!formData.postalCode.trim()) {
         newErrors.postalCode = t('form.required');
-      } else {
-        InputSanitizer.sanitizeText(formData.postalCode);
       }
 
       if (!formData.municipality.trim()) {
         newErrors.municipality = t('form.required');
-      } else {
-        InputSanitizer.sanitizeText(formData.municipality);
       }
 
       if (!formData.houseType) {

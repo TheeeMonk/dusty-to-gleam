@@ -42,17 +42,60 @@ class InputSanitizer {
   }
 
   /**
-   * Sanitizes numeric input
+   * Sanitizes address input
    */
-  static sanitizeNumber(input: string | number): number | null {
+  static sanitizeAddress(address: string): string {
+    if (typeof address !== 'string') return '';
+    
+    return address
+      .replace(/[<>]/g, '') // Remove potential HTML tags
+      .replace(/javascript:/gi, '') // Remove javascript: protocol
+      .replace(/on\w+=/gi, '') // Remove event handlers
+      .trim()
+      .substring(0, 500); // Limit length for addresses
+  }
+
+  /**
+   * Sanitizes notes input
+   */
+  static sanitizeNotes(notes: string): string {
+    if (typeof notes !== 'string') return '';
+    
+    return notes
+      .replace(/[<>]/g, '') // Remove potential HTML tags
+      .replace(/javascript:/gi, '') // Remove javascript: protocol
+      .replace(/on\w+=/gi, '') // Remove event handlers
+      .trim()
+      .substring(0, 2000); // Longer limit for notes
+  }
+
+  /**
+   * Sanitizes numeric input with optional range validation
+   */
+  static sanitizeNumber(input: string | number, min?: number, max?: number): number {
+    let num: number;
+    
     if (typeof input === 'number') {
-      return isFinite(input) ? input : null;
+      num = input;
+    } else if (typeof input === 'string') {
+      num = parseFloat(input.replace(/[^\d.-]/g, ''));
+    } else {
+      throw new Error('Invalid input type for number sanitization');
     }
     
-    if (typeof input !== 'string') return null;
+    if (!isFinite(num)) {
+      throw new Error('Invalid number value');
+    }
     
-    const num = parseFloat(input.replace(/[^\d.-]/g, ''));
-    return isFinite(num) ? num : null;
+    if (min !== undefined && num < min) {
+      throw new Error(`Number must be at least ${min}`);
+    }
+    
+    if (max !== undefined && num > max) {
+      throw new Error(`Number must be at most ${max}`);
+    }
+    
+    return num;
   }
 
   /**
@@ -73,7 +116,11 @@ class InputSanitizer {
     const numericFields = ['rooms', 'square_meters', 'windows', 'floors', 'bathrooms', 'bedrooms', 'estimated_duration'];
     numericFields.forEach(field => {
       if (data[field] !== undefined) {
-        sanitized[field] = this.sanitizeNumber(data[field]);
+        try {
+          sanitized[field] = this.sanitizeNumber(data[field]);
+        } catch (error) {
+          // Skip invalid numeric values
+        }
       }
     });
 
@@ -111,7 +158,11 @@ class InputSanitizer {
     const numericFields = ['estimated_duration', 'estimated_price_min', 'estimated_price_max', 'actual_duration'];
     numericFields.forEach(field => {
       if (data[field] !== undefined) {
-        sanitized[field] = this.sanitizeNumber(data[field]);
+        try {
+          sanitized[field] = this.sanitizeNumber(data[field]);
+        } catch (error) {
+          // Skip invalid numeric values
+        }
       }
     });
 
