@@ -20,17 +20,18 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useBookings } from '@/hooks/useBookings';
-import { useProperties } from '@/hooks/useProperties';
+import { Property } from '@/hooks/useProperties';
 
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  properties: Property[];
+  onAddProperty: (propertyData: any) => Promise<any>;
 }
 
-const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
+const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, properties, onAddProperty }) => {
   const { toast } = useToast();
   const { createBooking } = useBookings();
-  const { properties } = useProperties();
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [serviceType, setServiceType] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
