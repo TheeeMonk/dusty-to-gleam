@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProperties } from '@/hooks/useProperties';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useBookings } from '@/hooks/useBookings';
 import BottomNavigation from '@/components/BottomNavigation';
 import BookingModal from '@/components/BookingModal';
 import PropertyForm from '@/components/PropertyForm';
@@ -24,19 +25,9 @@ import {
   Building,
   Edit,
   PawPrint,
-  LogOut
+  LogOut,
+  Percent
 } from 'lucide-react';
-
-interface Cleaning {
-  id: string;
-  date: string;
-  time: string;
-  type: string;
-  address: string;
-  status: 'completed' | 'scheduled' | 'in-progress';
-  beforeImage?: string;
-  afterImage?: string;
-}
 
 interface CustomerDashboardProps {
   customerData: {
@@ -50,48 +41,45 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
   const { user, signOut } = useAuth();
   const { properties, loading, addProperty, updateProperty } = useProperties();
   const { profile } = useUserProfile();
+  const { bookings, loading: bookingsLoading } = useBookings();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isPropertyFormOpen, setIsPropertyFormOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<any>(null);
-  
-  const [nextCleaning] = useState<Cleaning | null>({
-    id: '1',
-    date: '2024-06-20',
-    time: '10:00',
-    type: 'Standard rengjøring',
-    address: 'Hjemme',
-    status: 'scheduled'
-  });
 
-  const [previousCleanings] = useState<Cleaning[]>([
-    {
-      id: '2',
-      date: '2024-06-10',
-      time: '14:00',
-      type: 'Dybderengjøring',
-      address: 'Hjemme',
-      status: 'completed',
-      beforeImage: '/api/placeholder/150/150',
-      afterImage: '/api/placeholder/150/150'
-    },
-    {
-      id: '3',
-      date: '2024-05-25',
-      time: '11:00',
-      type: 'Standard rengjøring',
-      address: 'Hjemme',
-      status: 'completed'
-    }
-  ]);
+  // Get the next scheduled booking
+  const nextCleaning = bookings
+    .filter(booking => booking.status === 'confirmed' && booking.scheduled_date)
+    .sort((a, b) => new Date(a.scheduled_date!).getTime() - new Date(b.scheduled_date!).getTime())[0];
 
-  const [invoices] = useState([
-    { id: '1', date: '2024-06-10', amount: 1200, status: 'paid' },
-    { id: '2', date: '2024-05-25', amount: 800, status: 'paid' }
-  ]);
+  // Get previous completed cleanings
+  const previousCleanings = bookings
+    .filter(booking => booking.status === 'completed')
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  const loyaltyProgress = (customerData.loyaltyPoints % 10) * 10;
-  const freeCleaningsEarned = Math.floor(customerData.loyaltyPoints / 10);
+  // Generate dummy invoices for completed bookings
+  const invoices = previousCleanings.map((booking, index) => ({
+    id: booking.id,
+    date: new Date(booking.created_at).toLocaleDateString('nb-NO'),
+    amount: booking.estimated_price_min ? Math.round(booking.estimated_price_min / 100) : 800,
+    status: 'paid' as const,
+    service: booking.service_type
+  }));
+
+  // Calculate discount percentage based on loyalty points
+  const getDiscountPercentage = (points: number): number => {
+    if (points >= 50) return 20; // 20% rabatt ved 50+ poeng
+    if (points >= 30) return 15; // 15% rabatt ved 30+ poeng
+    if (points >= 20) return 10; // 10% rabatt ved 20+ poeng
+    if (points >= 10) return 5;  // 5% rabatt ved 10+ poeng
+    return 0;
+  };
+
+  const currentDiscount = getDiscountPercentage(customerData.loyaltyPoints);
+  const nextDiscountThreshold = currentDiscount === 0 ? 10 : 
+                               currentDiscount === 5 ? 20 : 
+                               currentDiscount === 10 ? 30 : 
+                               currentDiscount === 15 ? 50 : null;
 
   const handleEditProperty = (property: any) => {
     setEditingProperty(property);
@@ -137,7 +125,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
         </p>
       </div>
 
-      {/* Next Cleaning Card - Improved styling */}
+      {/* Next Cleaning Card */}
       <Card className="wow-card card-hover animate-fade-in shadow-2xl rounded-3xl border-0 bg-gradient-to-br from-white/90 via-sky-50/90 to-blue-50/90 backdrop-blur-xl">
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center space-x-3 text-2xl">
@@ -146,31 +134,40 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {nextCleaning ? (
+          {bookingsLoading ? (
+            <div className="text-center py-12">
+              <Sparkles className="h-12 w-12 text-sky-500 animate-spin mx-auto mb-4" />
+              <p className="text-sky-600">Laster bestillinger...</p>
+            </div>
+          ) : nextCleaning ? (
             <div className="text-center space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <div className="flex items-center justify-center space-x-2">
                     <Calendar className="h-5 w-5 text-sky-500" />
-                    <span className="font-semibold text-lg">{nextCleaning.date}</span>
+                    <span className="font-semibold text-lg">
+                      {new Date(nextCleaning.scheduled_date!).toLocaleDateString('nb-NO')}
+                    </span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-center space-x-2">
                     <Clock className="h-5 w-5 text-sky-500" />
-                    <span className="font-semibold text-lg">{nextCleaning.time}</span>
+                    <span className="font-semibold text-lg">
+                      {nextCleaning.estimated_duration} min
+                    </span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-center space-x-2">
                     <MapPin className="h-5 w-5 text-sky-500" />
-                    <span className="font-semibold text-lg">{nextCleaning.address}</span>
+                    <span className="font-semibold text-lg">Din eiendom</span>
                   </div>
                 </div>
               </div>
               
               <Badge variant="secondary" className="bg-sky-100 text-sky-800 text-lg px-4 py-2">
-                {nextCleaning.type}
+                {nextCleaning.service_type}
               </Badge>
               
               <div className="flex justify-center">
@@ -204,12 +201,12 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Loyalty Card */}
+        {/* Loyalty Card with Discount System */}
         <Card className="wow-card card-hover animate-fade-in">
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center space-x-2 text-xl">
-              <Gift className="h-6 w-6 text-sky-500 animate-float" />
-              <span>Lojalitetsprogram</span>
+              <Percent className="h-6 w-6 text-sky-500 animate-float" />
+              <span>Rabatt Program</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 text-center">
@@ -220,24 +217,28 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
               <p className="text-sm text-muted-foreground">Lojalitetspoeng</p>
             </div>
             
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span>Fremgang til gratis vask</span>
-                <span>{customerData.loyaltyPoints % 10}/10</span>
+            {currentDiscount > 0 && (
+              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                <Percent className="h-8 w-8 text-green-600 mx-auto mb-2 animate-float" />
+                <p className="text-lg font-bold text-green-700">{currentDiscount}% rabatt</p>
+                <p className="text-sm text-green-600">på din neste vask!</p>
               </div>
-              <div className="w-full bg-sky-100 rounded-full h-3">
-                <div 
-                  className="bg-gradient-to-r from-sky-500 to-blue-600 h-3 rounded-full transition-all duration-500 animate-pulse-glow"
-                  style={{ width: `${loyaltyProgress}%` }}
-                ></div>
-              </div>
-            </div>
+            )}
 
-            {freeCleaningsEarned > 0 && (
-              <div className="p-4 bg-gradient-to-r from-sky-50 to-blue-50 rounded-xl border border-sky-200">
-                <Star className="h-8 w-8 text-sky-600 mx-auto mb-2 animate-float" />
-                <p className="text-sm font-medium text-sky-700">
-                  Du har {freeCleaningsEarned} gratis vask tilgjengelig!
+            {nextDiscountThreshold && (
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span>Til neste rabattnivå</span>
+                  <span>{customerData.loyaltyPoints}/{nextDiscountThreshold}</span>
+                </div>
+                <div className="w-full bg-sky-100 rounded-full h-3">
+                  <div 
+                    className="bg-gradient-to-r from-sky-500 to-blue-600 h-3 rounded-full transition-all duration-500"
+                    style={{ width: `${(customerData.loyaltyPoints / nextDiscountThreshold) * 100}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {nextDiscountThreshold - customerData.loyaltyPoints} poeng til {getDiscountPercentage(nextDiscountThreshold)}% rabatt
                 </p>
               </div>
             )}
@@ -248,32 +249,38 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
         <Card className="wow-card card-hover lg:col-span-2 animate-fade-in">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Sparkles className="h-5 w-5 text-dusty-500" />
-              <span>{t('dashboard.previousCleanings')}</span>
+              <Sparkles className="h-5 w-5 text-sky-500" />
+              <span>Tidligere rengjøringer</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {previousCleanings.map((cleaning) => (
-                <div key={cleaning.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="space-y-1">
-                    <div className="font-medium">{cleaning.date} - {cleaning.time}</div>
-                    <div className="text-sm text-muted-foreground">{cleaning.type}</div>
-                    <Badge variant="outline" className="text-xs">
-                      {cleaning.status === 'completed' ? 'Fullført' : 'Planlagt'}
-                    </Badge>
-                  </div>
-                  {cleaning.beforeImage && cleaning.afterImage && (
-                    <div className="flex space-x-2">
-                      <div className="text-center">
-                        <Camera className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                        <div className="text-xs text-muted-foreground">Før & Etter</div>
+            {bookingsLoading ? (
+              <div className="text-center py-8">
+                <Sparkles className="h-8 w-8 text-sky-500 animate-spin mx-auto mb-4" />
+                <p className="text-sky-600">Laster historikk...</p>
+              </div>
+            ) : previousCleanings.length > 0 ? (
+              <div className="space-y-4">
+                {previousCleanings.slice(0, 3).map((cleaning) => (
+                  <div key={cleaning.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="space-y-1">
+                      <div className="font-medium">
+                        {new Date(cleaning.created_at).toLocaleDateString('nb-NO')}
                       </div>
+                      <div className="text-sm text-muted-foreground">{cleaning.service_type}</div>
+                      <Badge variant="outline" className="text-xs">
+                        Fullført
+                      </Badge>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Calendar className="h-12 w-12 text-sky-300 mx-auto mb-4" />
+                <p className="text-muted-foreground">Ingen tidligere rengjøringer</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -281,41 +288,42 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
         <Card className="wow-card card-hover lg:col-span-3 animate-fade-in">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <FileText className="h-5 w-5 text-dusty-500" />
-              <span>{t('dashboard.invoices')}</span>
+              <FileText className="h-5 w-5 text-sky-500" />
+              <span>Fakturaer</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2">Dato</th>
-                    <th className="text-left py-2">Beløp</th>
-                    <th className="text-left py-2">Status</th>
-                    <th className="text-left py-2">Handling</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoices.map((invoice) => (
-                    <tr key={invoice.id} className="border-b">
-                      <td className="py-2">{invoice.date}</td>
-                      <td className="py-2">{invoice.amount} kr</td>
-                      <td className="py-2">
-                        <Badge variant={invoice.status === 'paid' ? 'default' : 'destructive'}>
-                          {invoice.status === 'paid' ? 'Betalt' : 'Venter'}
-                        </Badge>
-                      </td>
-                      <td className="py-2">
-                        <Button variant="outline" size="sm">
-                          Last ned PDF
-                        </Button>
-                      </td>
+            {invoices.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2">Dato</th>
+                      <th className="text-left py-2">Tjeneste</th>
+                      <th className="text-left py-2">Beløp</th>
+                      <th className="text-left py-2">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {invoices.map((invoice) => (
+                      <tr key={invoice.id} className="border-b">
+                        <td className="py-2">{invoice.date}</td>
+                        <td className="py-2">{invoice.service}</td>
+                        <td className="py-2">{invoice.amount} kr</td>
+                        <td className="py-2">
+                          <Badge variant="default">Betalt</Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-sky-300 mx-auto mb-4" />
+                <p className="text-muted-foreground">Ingen fakturaer ennå</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

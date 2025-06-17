@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import PropertyForm from '@/components/PropertyForm';
 import { useBookings } from '@/hooks/useBookings';
 import { toast } from 'sonner';
@@ -22,7 +24,8 @@ import {
   MapPin,
   Clock,
   CheckCircle,
-  Plus
+  Plus,
+  Repeat
 } from 'lucide-react';
 
 interface Property {
@@ -44,6 +47,8 @@ interface BookingModalProps {
   onAddProperty?: (property: Omit<Property, 'id'>) => Promise<Property>;
 }
 
+type RecurringOption = 'none' | 'weekly' | 'biweekly' | 'monthly';
+
 const BookingModal: React.FC<BookingModalProps> = ({ 
   isOpen, 
   onClose, 
@@ -53,7 +58,8 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const { createBooking } = useBookings();
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
-  const [step, setStep] = useState<'service' | 'property' | 'confirmation'>('service');
+  const [recurringOption, setRecurringOption] = useState<RecurringOption>('none');
+  const [step, setStep] = useState<'service' | 'property' | 'recurring' | 'confirmation'>('service');
   const [isPropertyFormOpen, setIsPropertyFormOpen] = useState(false);
 
   const services = [
@@ -114,6 +120,36 @@ const BookingModal: React.FC<BookingModalProps> = ({
     }
   ];
 
+  const recurringOptions = [
+    {
+      id: 'none' as RecurringOption,
+      name: 'Engangs bestilling',
+      description: 'Kun én vask',
+      icon: Calendar
+    },
+    {
+      id: 'weekly' as RecurringOption,
+      name: 'Ukentlig',
+      description: 'Hver 7. dag',
+      icon: Repeat,
+      discount: '10% rabatt'
+    },
+    {
+      id: 'biweekly' as RecurringOption,
+      name: 'Annenhver uke',
+      description: 'Hver 14. dag',
+      icon: Repeat,
+      discount: '7% rabatt'
+    },
+    {
+      id: 'monthly' as RecurringOption,
+      name: 'Månedlig',
+      description: 'Hver måned',
+      icon: Repeat,
+      discount: '5% rabatt'
+    }
+  ];
+
   const handleServiceSelect = (serviceId: string) => {
     setSelectedService(serviceId);
     setStep('property');
@@ -121,6 +157,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
 
   const handlePropertySelect = (propertyId: string) => {
     setSelectedProperty(propertyId);
+    setStep('recurring');
+  };
+
+  const handleRecurringSelect = () => {
     setStep('confirmation');
   };
 
@@ -161,12 +201,26 @@ const BookingModal: React.FC<BookingModalProps> = ({
     }
 
     try {
+      // Calculate discounted prices if recurring
+      let priceMin = selectedServiceData.estimatedPriceMin;
+      let priceMax = selectedServiceData.estimatedPriceMax;
+      
+      if (recurringOption !== 'none') {
+        const discountRate = recurringOption === 'weekly' ? 0.9 : 
+                           recurringOption === 'biweekly' ? 0.93 : 0.95;
+        priceMin = Math.round(priceMin * discountRate);
+        priceMax = Math.round(priceMax * discountRate);
+      }
+
       const booking = await createBooking({
         property_id: selectedProperty,
         service_type: selectedServiceData.name,
         estimated_duration: selectedServiceData.estimatedDuration,
-        estimated_price_min: selectedServiceData.estimatedPriceMin,
-        estimated_price_max: selectedServiceData.estimatedPriceMax
+        estimated_price_min: priceMin,
+        estimated_price_max: priceMax,
+        special_instructions: recurringOption !== 'none' ? 
+          `Gjentakende bestilling: ${recurringOptions.find(o => o.id === recurringOption)?.name}` : 
+          undefined
       });
 
       if (booking) {
@@ -177,6 +231,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
         setStep('service');
         setSelectedService(null);
         setSelectedProperty(null);
+        setRecurringOption('none');
       } else {
         toast.error('Kunne ikke opprette bestilling');
       }
@@ -188,6 +243,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
 
   const selectedServiceData = services.find(s => s.id === selectedService);
   const selectedPropertyData = properties.find(p => p.id === selectedProperty);
+  const selectedRecurringData = recurringOptions.find(o => o.id === recurringOption);
 
   return (
     <>
@@ -200,6 +256,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
             <DialogDescription className="text-center">
               {step === 'service' && 'Velg type rengjøring'}
               {step === 'property' && 'Velg eiendom'}
+              {step === 'recurring' && 'Velg hyppighet'}
               {step === 'confirmation' && 'Bekreft bestilling'}
             </DialogDescription>
           </DialogHeader>
@@ -298,14 +355,84 @@ const BookingModal: React.FC<BookingModalProps> = ({
             </div>
           )}
 
-          {step === 'confirmation' && (
-            <div className="space-y-6">
+          {step === 'recurring' && (
+            <div className="space-y-4">
               <Button 
                 variant="outline" 
                 onClick={() => setStep('property')}
                 className="mb-4"
               >
                 ← Tilbake til eiendommer
+              </Button>
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-center">Hvor ofte ønsker du rengjøring?</h3>
+                <RadioGroup value={recurringOption} onValueChange={(value) => setRecurringOption(value as RecurringOption)}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {recurringOptions.map((option) => {
+                      const IconComponent = option.icon;
+                      return (
+                        <div key={option.id} className="relative">
+                          <RadioGroupItem value={option.id} id={option.id} className="sr-only" />
+                          <Label 
+                            htmlFor={option.id}
+                            className="block cursor-pointer"
+                          >
+                            <Card 
+                              className={`wow-card card-hover ${
+                                recurringOption === option.id 
+                                  ? 'border-sky-500 bg-sky-50' 
+                                  : 'border-gray-200'
+                              }`}
+                            >
+                              <CardContent className="p-6">
+                                <div className="flex items-center space-x-4">
+                                  <div className={`p-3 rounded-full ${
+                                    recurringOption === option.id 
+                                      ? 'bg-sky-200' 
+                                      : 'bg-sky-100'
+                                  }`}>
+                                    <IconComponent className="h-6 w-6 text-sky-600" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold">{option.name}</h4>
+                                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                                    {option.discount && (
+                                      <Badge variant="secondary" className="mt-2 bg-green-100 text-green-800">
+                                        {option.discount}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </RadioGroup>
+                
+                <div className="flex justify-center pt-4">
+                  <Button 
+                    onClick={handleRecurringSelect}
+                    className="px-8 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700"
+                  >
+                    Fortsett
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 'confirmation' && (
+            <div className="space-y-6">
+              <Button 
+                variant="outline" 
+                onClick={() => setStep('recurring')}
+                className="mb-4"
+              >
+                ← Tilbake til hyppighet
               </Button>
               
               <Card className="wow-card animate-pulse-glow">
@@ -318,7 +445,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-4">
                       <h3 className="font-semibold text-lg">Valgt tjeneste</h3>
                       {selectedServiceData && (
@@ -351,6 +478,26 @@ const BookingModal: React.FC<BookingModalProps> = ({
                             <span className="text-sm">{selectedPropertyData.address}</span>
                           </div>
                           <Badge variant="outline">{selectedPropertyData.type}</Badge>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-lg">Hyppighet</h3>
+                      {selectedRecurringData && (
+                        <div className="p-4 bg-sky-50 rounded-lg">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <selectedRecurringData.icon className="h-5 w-5 text-sky-600" />
+                            <span className="font-medium">{selectedRecurringData.name}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {selectedRecurringData.description}
+                          </p>
+                          {selectedRecurringData.discount && (
+                            <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              {selectedRecurringData.discount}
+                            </Badge>
+                          )}
                         </div>
                       )}
                     </div>
