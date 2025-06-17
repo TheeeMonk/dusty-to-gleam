@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { useJobImages } from '@/hooks/useJobImages';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AllUpcomingBookings from './AllUpcomingBookings';
 import CalendarView from './CalendarView';
+import MonthlyIncomeOverview from './MonthlyIncomeOverview';
 import { 
   Clock, 
   MapPin, 
@@ -25,7 +27,8 @@ import {
   Bath,
   Bed,
   AlertCircle,
-  Calendar
+  Calendar,
+  TrendingUp
 } from 'lucide-react';
 import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -38,6 +41,7 @@ const EmployeeDashboard: React.FC = () => {
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [showCalendarView, setShowCalendarView] = useState(false);
+  const [showIncomeOverview, setShowIncomeOverview] = useState(false);
   const { uploadImage, uploading } = useJobImages(selectedBookingId || undefined);
 
   console.log('All bookings in dashboard:', bookings);
@@ -171,6 +175,26 @@ const EmployeeDashboard: React.FC = () => {
     );
   }
 
+  // If showing income overview, render that component
+  if (showIncomeOverview) {
+    return (
+      <div className="min-h-screen p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold gradient-text">Månedlig Inntektsoversikt</h1>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowIncomeOverview(false)}
+            >
+              Tilbake til dashboard
+            </Button>
+          </div>
+          <MonthlyIncomeOverview bookings={bookings} />
+        </div>
+      </div>
+    );
+  }
+
   // If showing calendar view, render that component
   if (showCalendarView) {
     return (
@@ -246,11 +270,14 @@ const EmployeeDashboard: React.FC = () => {
             </CardContent>
           </Card>
           
-          <Card className="glass-effect">
+          <Card 
+            className="glass-effect cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => setShowIncomeOverview(true)}
+          >
             <CardContent className="p-3 sm:p-4 text-center">
-              <Square className="h-6 w-6 sm:h-8 sm:w-8 text-green-500 mx-auto mb-1 sm:mb-2" />
+              <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-green-500 mx-auto mb-1 sm:mb-2" />
               <div className="text-lg sm:text-2xl font-bold">{completedToday}</div>
-              <p className="text-xs sm:text-sm text-muted-foreground">Fullført</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Inntekt</p>
             </CardContent>
           </Card>
         </div>
