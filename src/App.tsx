@@ -10,12 +10,19 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
-console.log('App.tsx is loading...');
+console.log('App.tsx: Starting app initialization...');
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000,
+    },
+  },
+});
 
 const App = () => {
-  console.log('App component is rendering');
+  console.log('App.tsx: App component rendering');
   
   return (
     <QueryClientProvider client={queryClient}>
@@ -40,6 +47,6 @@ const App = () => {
   );
 };
 
-console.log('App component defined, exporting...');
+console.log('App.tsx: App component defined and ready for export');
 
 export default App;
