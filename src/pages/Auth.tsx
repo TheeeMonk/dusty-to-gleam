@@ -11,8 +11,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Sparkles, Mail, Lock, User, Phone } from 'lucide-react';
 
 const Auth = () => {
-  console.log('Auth component: Starting render');
-  
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,11 +26,13 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
 
-  console.log('Auth component: State initialized');
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Auth component: Login attempt started');
+    
+    if (!loginEmail || !loginPassword) {
+      setError('Vennligst fyll ut alle feltene');
+      return;
+    }
     
     setLoading(true);
     setError(null);
@@ -44,14 +44,11 @@ const Auth = () => {
       });
 
       if (error) {
-        console.error('Auth component: Login error:', error);
         setError(error.message);
       } else {
-        console.log('Auth component: Login successful, navigating to home');
         navigate('/');
       }
     } catch (err) {
-      console.error('Auth component: Login exception:', err);
       setError('En feil oppstod under pålogging');
     } finally {
       setLoading(false);
@@ -60,21 +57,22 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Auth component: Signup attempt started');
+    
+    if (!signupEmail || !signupPassword || !fullName) {
+      setError('Vennligst fyll ut alle påkrevde feltene');
+      return;
+    }
     
     setLoading(true);
     setError(null);
     setMessage(null);
 
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      console.log('Auth component: Using redirect URL:', redirectUrl);
-
       const { error } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
         options: {
-          emailRedirectTo: redirectUrl,
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             full_name: fullName,
             phone: phone,
@@ -83,21 +81,16 @@ const Auth = () => {
       });
 
       if (error) {
-        console.error('Auth component: Signup error:', error);
         setError(error.message);
       } else {
-        console.log('Auth component: Signup successful');
         setMessage('Sjekk e-posten din for bekreftelseslenke!');
       }
     } catch (err) {
-      console.error('Auth component: Signup exception:', err);
       setError('En feil oppstod under registrering');
     } finally {
       setLoading(false);
     }
   };
-
-  console.log('Auth component: About to render JSX');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 flex items-center justify-center p-6">
@@ -185,7 +178,7 @@ const Auth = () => {
                   <div className="space-y-2">
                     <Label htmlFor="signup-name" className="flex items-center space-x-2">
                       <User className="h-4 w-4" />
-                      <span>Fullt navn</span>
+                      <span>Fullt navn *</span>
                     </Label>
                     <Input
                       id="signup-name"
@@ -216,7 +209,7 @@ const Auth = () => {
                   <div className="space-y-2">
                     <Label htmlFor="signup-email" className="flex items-center space-x-2">
                       <Mail className="h-4 w-4" />
-                      <span>E-post</span>
+                      <span>E-post *</span>
                     </Label>
                     <Input
                       id="signup-email"
@@ -232,7 +225,7 @@ const Auth = () => {
                   <div className="space-y-2">
                     <Label htmlFor="signup-password" className="flex items-center space-x-2">
                       <Lock className="h-4 w-4" />
-                      <span>Passord</span>
+                      <span>Passord *</span>
                     </Label>
                     <Input
                       id="signup-password"
@@ -262,7 +255,5 @@ const Auth = () => {
     </div>
   );
 };
-
-console.log('Auth component: Component definition complete');
 
 export default Auth;
