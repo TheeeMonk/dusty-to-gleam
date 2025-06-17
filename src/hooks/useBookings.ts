@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -32,6 +32,7 @@ export const useBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const channelRef = useRef<any>(null);
 
   const fetchBookings = async () => {
     if (!user) {
@@ -143,12 +144,27 @@ export const useBookings = () => {
 
   // Set up real-time subscription for booking updates
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      // Clean up existing channel if user logs out
+      if (channelRef.current) {
+        console.log('Cleaning up subscription for logged out user');
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      return;
+    }
+
+    // Clean up existing channel before creating a new one
+    if (channelRef.current) {
+      console.log('Cleaning up existing subscription before creating new one');
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
 
     console.log('Setting up real-time subscription for user:', user.id);
     
     // Create a unique channel name for this user
-    const channelName = `booking-changes-${user.id}`;
+    const channelName = `booking-changes-${user.id}-${Date.now()}`;
     
     const channel = supabase
       .channel(channelName)
@@ -170,16 +186,23 @@ export const useBookings = () => {
         console.log('Subscription status:', status);
       });
 
+    // Store the channel reference
+    channelRef.current = channel;
+
     // Cleanup function to unsubscribe
     return () => {
-      console.log('Cleaning up real-time subscription');
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        console.log('Cleaning up real-time subscription');
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [user?.id]); // Only depend on user.id to avoid recreating subscription
 
+  // Fetch bookings when user changes
   useEffect(() => {
     fetchBookings();
-  }, [user]);
+  }, [user?.id]);
 
   return {
     bookings,

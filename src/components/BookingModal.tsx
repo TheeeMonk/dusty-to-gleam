@@ -67,6 +67,17 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
         title: "Suksess",
         description: "Booking opprettet!",
       });
+      
+      // Reset form
+      setSelectedPropertyId('');
+      setServiceType('');
+      setSelectedDate('');
+      setSelectedTime('');
+      setEstimatedDuration(60);
+      setEstimatedPriceMin(500);
+      setEstimatedPriceMax(1000);
+      setSpecialInstructions('');
+      
       onClose();
     } catch (error: any) {
       toast({

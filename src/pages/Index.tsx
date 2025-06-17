@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -100,10 +101,11 @@ const Index = () => {
     setActiveTab('dashboard');
   };
 
-  const mockCustomerData = {
+  // Memoize customer data to prevent unnecessary re-renders
+  const mockCustomerData = React.useMemo(() => ({
     name: user?.email || registrationData?.fullName || 'Anna Hansen',
     loyaltyPoints: 23
-  };
+  }), [user?.email, registrationData?.fullName]);
 
   if (loading || rolesLoading) {
     return (
