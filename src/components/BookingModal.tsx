@@ -1,17 +1,24 @@
+
 import React, { useState } from 'react';
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  Input,
-  Textarea,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
   Select,
+  SelectContent,
   SelectItem,
-} from "@nextui-org/react";
-import { useToast } from "@/hooks/use-toast"
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import { useBookings } from '@/hooks/useBookings';
 import { useProperties } from '@/hooks/useProperties';
 
@@ -24,7 +31,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
   const { toast } = useToast();
   const { createBooking } = useBookings();
   const { properties } = useProperties();
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [serviceType, setServiceType] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
@@ -50,7 +57,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
         status: 'pending',
         scheduled_date: selectedDate,
         scheduled_time: selectedTime,
-        estimated_duration,
+        estimated_duration: estimatedDuration,
         estimated_price_min: estimatedPriceMin,
         estimated_price_max: estimatedPriceMax,
         special_instructions: specialInstructions
@@ -71,87 +78,109 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} backdrop="blur">
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex flex-col gap-1">Opprett Ny Booking</ModalHeader>
-            <ModalBody>
-              <Select
-                label="Velg Eiendom"
-                placeholder="Velg en eiendom"
-                selectedKeys={[selectedPropertyId || '']}
-                onSelectionChange={key => setSelectedPropertyId(key.currentKey)}
-              >
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Opprett Ny Booking</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="property">Velg Eiendom</Label>
+            <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Velg en eiendom" />
+              </SelectTrigger>
+              <SelectContent>
                 {properties.map(property => (
                   <SelectItem key={property.id} value={property.id}>
                     {property.name} - {property.address}
                   </SelectItem>
                 ))}
-              </Select>
+              </SelectContent>
+            </Select>
+          </div>
 
-              <Input
-                type="text"
-                label="Type tjeneste"
-                placeholder="F.eks. Vask"
-                value={serviceType}
-                onValueChange={setServiceType}
-              />
+          <div className="grid gap-2">
+            <Label htmlFor="service-type">Type tjeneste</Label>
+            <Input
+              id="service-type"
+              type="text"
+              placeholder="F.eks. Vask"
+              value={serviceType}
+              onChange={(e) => setServiceType(e.target.value)}
+            />
+          </div>
 
-              <Input
-                type="date"
-                label="Valgt dato"
-                value={selectedDate}
-                onValueChange={setSelectedDate}
-              />
+          <div className="grid gap-2">
+            <Label htmlFor="date">Valgt dato</Label>
+            <Input
+              id="date"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+            />
+          </div>
 
-              <Input
-                type="time"
-                label="Valgt tidspunkt"
-                value={selectedTime}
-                onValueChange={setSelectedTime}
-              />
+          <div className="grid gap-2">
+            <Label htmlFor="time">Valgt tidspunkt</Label>
+            <Input
+              id="time"
+              type="time"
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(e.target.value)}
+            />
+          </div>
 
-              <Input
-                type="number"
-                label="Estimert varighet (minutter)"
-                value={estimatedDuration}
-                onValueChange={value => setEstimatedDuration(Number(value))}
-              />
+          <div className="grid gap-2">
+            <Label htmlFor="duration">Estimert varighet (minutter)</Label>
+            <Input
+              id="duration"
+              type="number"
+              value={estimatedDuration}
+              onChange={(e) => setEstimatedDuration(Number(e.target.value))}
+            />
+          </div>
 
-              <Input
-                type="number"
-                label="Estimert minimumspris"
-                value={estimatedPriceMin}
-                onValueChange={value => setEstimatedPriceMin(Number(value))}
-              />
+          <div className="grid gap-2">
+            <Label htmlFor="price-min">Estimert minimumspris</Label>
+            <Input
+              id="price-min"
+              type="number"
+              value={estimatedPriceMin}
+              onChange={(e) => setEstimatedPriceMin(Number(e.target.value))}
+            />
+          </div>
 
-              <Input
-                type="number"
-                label="Estimert maksimumspris"
-                value={estimatedPriceMax}
-                onValueChange={value => setEstimatedPriceMax(Number(value))}
-              />
+          <div className="grid gap-2">
+            <Label htmlFor="price-max">Estimert maksimumspris</Label>
+            <Input
+              id="price-max"
+              type="number"
+              value={estimatedPriceMax}
+              onChange={(e) => setEstimatedPriceMax(Number(e.target.value))}
+            />
+          </div>
 
-              <Textarea
-                label="Spesielle instruksjoner"
-                placeholder="F.eks. Ring ved ankomst"
-                value={specialInstructions}
-                onValueChange={setSpecialInstructions}
-              />
-            </ModalBody>
-            <ModalFooter>
-              <Button color="danger" variant="flat" onPress={onClose}>
-                Lukk
-              </Button>
-              <Button color="primary" onPress={handleCreateBooking}>
-                Opprett Booking
-              </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+          <div className="grid gap-2">
+            <Label htmlFor="instructions">Spesielle instruksjoner</Label>
+            <Textarea
+              id="instructions"
+              placeholder="F.eks. Ring ved ankomst"
+              value={specialInstructions}
+              onChange={(e) => setSpecialInstructions(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Lukk
+          </Button>
+          <Button onClick={handleCreateBooking}>
+            Opprett Booking
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
