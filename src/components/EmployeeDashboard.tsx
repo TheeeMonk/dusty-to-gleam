@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,8 @@ import {
   Eye,
   Home,
   Bath,
-  Bed
+  Bed,
+  AlertCircle
 } from 'lucide-react';
 import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -56,22 +56,23 @@ const EmployeeDashboard: React.FC = () => {
     return <AllUpcomingBookings onBack={() => setShowAllUpcoming(false)} />;
   }
 
-  // Show ALL bookings for today, including pending ones
+  // Filter bookings for different categories
+  const pendingBookings = bookings.filter(booking => booking.status === 'pending');
   const todaysJobs = bookings.filter(booking => {
     if (!booking.scheduled_date) return false;
     return isToday(new Date(booking.scheduled_date));
   });
 
-  // Show ALL upcoming bookings, including pending ones
   const upcomingJobs = bookings.filter(booking => {
     if (!booking.scheduled_date) return false;
     const bookingDate = new Date(booking.scheduled_date);
     return !isToday(bookingDate) && bookingDate > new Date();
-  }).slice(0, 5); // Show next 5 upcoming
+  }).slice(0, 5);
 
   const activeJobs = todaysJobs.filter(job => job.status === 'in_progress');
   const completedToday = todaysJobs.filter(job => job.status === 'completed').length;
 
+  console.log('Pending bookings:', pendingBookings);
   console.log('Todays jobs:', todaysJobs);
   console.log('Upcoming jobs:', upcomingJobs);
 
@@ -194,7 +195,7 @@ const EmployeeDashboard: React.FC = () => {
   return (
     <div className="min-h-screen p-2 sm:p-4 space-y-4 sm:space-y-6 pb-20">
       <div className="max-w-6xl mx-auto">
-        {/* Header - Mobile optimized */}
+        {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold gradient-text mb-2">
             {t('dashboard.employee')}
@@ -204,8 +205,16 @@ const EmployeeDashboard: React.FC = () => {
           </p>
         </div>
 
-        {/* Stats Cards - Mobile responsive grid */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+          <Card className="glass-effect">
+            <CardContent className="p-3 sm:p-4 text-center">
+              <AlertCircle className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500 mx-auto mb-1 sm:mb-2" />
+              <div className="text-lg sm:text-2xl font-bold">{pendingBookings.length}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Avventer</p>
+            </CardContent>
+          </Card>
+          
           <Card className="glass-effect">
             <CardContent className="p-3 sm:p-4 text-center">
               <CalendarDays className="h-6 w-6 sm:h-8 sm:w-8 text-dusty-500 mx-auto mb-1 sm:mb-2" />
@@ -231,7 +240,73 @@ const EmployeeDashboard: React.FC = () => {
           </Card>
         </div>
 
-        {/* Today's Jobs - Mobile optimized */}
+        {/* Pending Jobs Section - Highlighted */}
+        {pendingBookings.length > 0 && (
+          <Card className="glass-effect card-hover mb-4 sm:mb-6 border-2 border-yellow-200 bg-yellow-50">
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl text-yellow-800">
+                <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
+                <span>Nye oppdrag som venter på bekreftelse</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="space-y-3 sm:space-y-4">
+                {pendingBookings.map((job) => (
+                  <div key={job.id} className="bg-white p-3 sm:p-4 rounded-lg border-2 border-yellow-300 shadow-sm">
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <div className="flex items-center space-x-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium text-sm sm:text-base">{job.customer_email}</span>
+                          </div>
+                          <Badge className="bg-yellow-100 text-yellow-800 text-xs w-fit">
+                            ⏳ Ny booking
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex items-start space-x-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div className="flex-1">
+                            <span className="text-xs sm:text-sm break-words block">{job.property_address}</span>
+                            <span className="text-xs text-muted-foreground">{job.property_name}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-xs sm:text-sm">
+                            {formatDate(job.scheduled_date!)} {formatTime(job.scheduled_time)} - {job.service_type}
+                          </span>
+                        </div>
+
+                        {job.special_instructions && (
+                          <div className="flex items-start space-x-2">
+                            <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                            <span className="text-xs sm:text-sm text-muted-foreground break-words">
+                              {job.special_instructions}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button 
+                        onClick={() => handleConfirmBooking(job.id)}
+                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 w-full text-sm"
+                        size={isMobile ? "sm" : "default"}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Aksepter oppdrag
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Today's Jobs */}
         <Card className="glass-effect card-hover mb-4 sm:mb-6">
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
@@ -250,7 +325,6 @@ const EmployeeDashboard: React.FC = () => {
                 {todaysJobs.map((job) => (
                   <div key={job.id} className="bg-white p-3 sm:p-4 rounded-lg border shadow-sm">
                     <div className="space-y-3">
-                      {/* Job Info */}
                       <div className="space-y-2">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                           <div className="flex items-center space-x-2">
@@ -294,20 +368,8 @@ const EmployeeDashboard: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Action Buttons - Mobile stack */}
                       <div className="flex flex-col space-y-2">
-                        {job.status === 'pending' && (
-                          <Button 
-                            onClick={() => handleConfirmBooking(job.id)}
-                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 w-full text-sm"
-                            size={isMobile ? "sm" : "default"}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Bekreft booking
-                          </Button>
-                        )}
-
-                        {(job.status === 'confirmed') && (
+                        {job.status === 'confirmed' && (
                           <Button 
                             onClick={() => handleStartJob(job.id)}
                             className="bg-gradient-to-r from-dusty-500 to-dirty-500 hover:from-dusty-600 hover:to-dirty-600 w-full text-sm"
@@ -370,7 +432,7 @@ const EmployeeDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Upcoming Jobs - Mobile optimized */}
+        {/* Upcoming Jobs */}
         <Card className="glass-effect card-hover">
           <CardHeader className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
@@ -409,7 +471,19 @@ const EmployeeDashboard: React.FC = () => {
                       </div>
                       <div className="text-xs text-muted-foreground">{job.property_name}</div>
                     </div>
-                    <Badge variant="outline" className="text-xs w-fit">{getStatusText(job.status)}</Badge>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="outline" className="text-xs w-fit">{getStatusText(job.status)}</Badge>
+                      {job.status === 'pending' && (
+                        <Button 
+                          size="sm"
+                          onClick={() => handleConfirmBooking(job.id)}
+                          className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-xs"
+                        >
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Aksepter
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
