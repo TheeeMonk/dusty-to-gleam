@@ -43,53 +43,7 @@ const EmployeeDashboard: React.FC = () => {
   console.log('All bookings in dashboard:', bookings);
   console.log('Total bookings count:', bookings.length);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen p-4 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mx-auto mb-4"></div>
-          <p className="text-sky-600">Laster bookinger...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If showing calendar view, render that component
-  if (showCalendarView) {
-    return (
-      <CalendarView 
-        bookings={bookings} 
-        onConfirmBooking={handleConfirmBooking}
-        onBack={() => setShowCalendarView(false)} 
-      />
-    );
-  }
-
-  // If showing all upcoming bookings, render that component
-  if (showAllUpcoming) {
-    return <AllUpcomingBookings onBack={() => setShowAllUpcoming(false)} />;
-  }
-
-  // Filter bookings for different categories
-  const pendingBookings = bookings.filter(booking => booking.status === 'pending');
-  const todaysJobs = bookings.filter(booking => {
-    if (!booking.scheduled_date) return false;
-    return isToday(new Date(booking.scheduled_date));
-  });
-
-  const upcomingJobs = bookings.filter(booking => {
-    if (!booking.scheduled_date) return false;
-    const bookingDate = new Date(booking.scheduled_date);
-    return !isToday(bookingDate) && bookingDate > new Date();
-  }).slice(0, 5);
-
-  const activeJobs = todaysJobs.filter(job => job.status === 'in_progress');
-  const completedToday = todaysJobs.filter(job => job.status === 'completed').length;
-
-  console.log('Pending bookings:', pendingBookings);
-  console.log('Todays jobs:', todaysJobs);
-  console.log('Upcoming jobs:', upcomingJobs);
-
+  // Move all function declarations before they are used
   const handleConfirmBooking = async (jobId: string) => {
     console.log('Attempting to confirm booking:', jobId);
     try {
@@ -205,6 +159,53 @@ const EmployeeDashboard: React.FC = () => {
     if (!timeString) return '';
     return timeString.slice(0, 5); // Format HH:MM
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mx-auto mb-4"></div>
+          <p className="text-sky-600">Laster bookinger...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If showing calendar view, render that component
+  if (showCalendarView) {
+    return (
+      <CalendarView 
+        bookings={bookings} 
+        onConfirmBooking={handleConfirmBooking}
+        onBack={() => setShowCalendarView(false)} 
+      />
+    );
+  }
+
+  // If showing all upcoming bookings, render that component
+  if (showAllUpcoming) {
+    return <AllUpcomingBookings onBack={() => setShowAllUpcoming(false)} />;
+  }
+
+  // Filter bookings for different categories
+  const pendingBookings = bookings.filter(booking => booking.status === 'pending');
+  const todaysJobs = bookings.filter(booking => {
+    if (!booking.scheduled_date) return false;
+    return isToday(new Date(booking.scheduled_date));
+  });
+
+  const upcomingJobs = bookings.filter(booking => {
+    if (!booking.scheduled_date) return false;
+    const bookingDate = new Date(booking.scheduled_date);
+    return !isToday(bookingDate) && bookingDate > new Date();
+  }).slice(0, 5);
+
+  const activeJobs = todaysJobs.filter(job => job.status === 'in_progress');
+  const completedToday = todaysJobs.filter(job => job.status === 'completed').length;
+
+  console.log('Pending bookings:', pendingBookings);
+  console.log('Todays jobs:', todaysJobs);
+  console.log('Upcoming jobs:', upcomingJobs);
 
   return (
     <div className="min-h-screen p-2 sm:p-4 space-y-4 sm:space-y-6 pb-20">
