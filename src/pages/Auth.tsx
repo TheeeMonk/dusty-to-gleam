@@ -1,28 +1,24 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { Sparkles, Mail, Lock, User, Phone } from 'lucide-react';
-import { useProperties } from '@/hooks/useProperties';
-import { useAuth } from '@/contexts/AuthContext';
-import { LanguageProvider } from '@/contexts/LanguageContext';
-import RegistrationForm from '@/components/RegistrationForm';
-import type { RegistrationData } from '@/components/RegistrationForm';
+import { RateLimiter } from '@/utils/rateLimiter';
+import { InputSanitizer } from '@/utils/inputSanitizer';
 
 const Auth = () => {
+  console.log('Auth component rendering');
+  
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { addProperty } = useProperties();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [showPropertyRegistration, setShowPropertyRegistration] = useState(false);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -34,100 +30,104 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
 
-  useEffect(() => {
-    // Check if user is already logged in
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/');
-      }
-    };
-    checkUser();
-  }, [navigate]);
-
-  // If user just signed up and we need to show property registration
-  useEffect(() => {
-    if (user && showPropertyRegistration) {
-      // User is now authenticated, show property registration
-    }
-  }, [user, showPropertyRegistration]);
+  console.log('Auth form states:', { loginEmail, signupEmail, loading, error, message });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Login attempt started');
+    
+    // Rate limiting check
+    if (!RateLimiter.check(`login:${loginEmail}`, 5, 300000)) {
+      setError('For mange påloggingsforsøk. Prøv igjen senere.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: loginEmail,
-      password: loginPassword,
-    });
+    try {
+      const sanitizedEmail = InputSanitizer.sanitizeEmail(loginEmail);
+      if (!sanitizedEmail) {
+        throw new Error('Ugyldig e-postadresse');
+      }
 
-    if (error) {
-      setError(error.message);
-    } else {
-      navigate('/');
+      const { error } = await supabase.auth.signInWithPassword({
+        email: sanitizedEmail,
+        password: loginPassword,
+      });
+
+      if (error) {
+        console.error('Login error:', error);
+        setError(error.message);
+      } else {
+        console.log('Login successful, navigating to home');
+        navigate('/');
+      }
+    } catch (err) {
+      console.error('Login exception:', err);
+      setError('En feil oppstod under pålogging');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Signup attempt started');
+    
+    // Rate limiting check
+    if (!RateLimiter.check(`signup:${signupEmail}`, 3, 300000)) {
+      setError('For mange registreringsforsøk. Prøv igjen senere.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setMessage(null);
 
-    const redirectUrl = `${window.location.origin}/`;
+    try {
+      const sanitizedEmail = InputSanitizer.sanitizeEmail(signupEmail);
+      const sanitizedName = InputSanitizer.sanitizeText(fullName);
+      const sanitizedPhone = InputSanitizer.sanitizePhone(phone);
 
-    const { error } = await supabase.auth.signUp({
-      email: signupEmail,
-      password: signupPassword,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName,
-          phone: phone,
-        }
+      if (!sanitizedEmail) {
+        throw new Error('Ugyldig e-postadresse');
       }
-    });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setMessage('Sjekk e-posten din for bekreftelseslenke!');
-      // After successful signup, show property registration
-      setShowPropertyRegistration(true);
+      if (!sanitizedName) {
+        throw new Error('Fullt navn er påkrevd');
+      }
+
+      const redirectUrl = `${window.location.origin}/`;
+
+      const { error } = await supabase.auth.signUp({
+        email: sanitizedEmail,
+        password: signupPassword,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: sanitizedName,
+            phone: sanitizedPhone,
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Signup error:', error);
+        setError(error.message);
+      } else {
+        console.log('Signup successful');
+        setMessage('Sjekk e-posten din for bekreftelseslenke!');
+      }
+    } catch (err) {
+      console.error('Signup exception:', err);
+      setError('En feil oppstod under registrering');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handlePropertyRegistration = async (data: RegistrationData) => {
-    if (!user) return;
-
-    const propertyData = {
-      name: data.fullName + 's bolig',
-      address: data.address + ', ' + data.postalCode + ' ' + data.municipality,
-      type: data.houseType,
-      rooms: data.rooms,
-      square_meters: data.squareMeters,
-      windows: parseInt(data.windows),
-      has_pets: data.pets,
-      notes: `Etasjer: ${data.floors}, Bad: ${data.bathrooms}`
-    };
-
-    const result = await addProperty(propertyData);
-    if (result) {
-      navigate('/');
-    }
-  };
-
-  // If we're showing property registration and user is authenticated
-  if (showPropertyRegistration && user) {
-    return (
-      <LanguageProvider>
-        <RegistrationForm onComplete={handlePropertyRegistration} />
-      </LanguageProvider>
-    );
-  }
+  console.log('About to render Auth component JSX');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 flex items-center justify-center p-6">
@@ -135,14 +135,14 @@ const Auth = () => {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
             <div className="p-6 bg-gradient-to-r from-sky-100 to-blue-100 rounded-full">
-              <Sparkles className="h-12 w-12 text-sky-600 animate-float" />
+              <Sparkles className="h-12 w-12 text-sky-600" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold gradient-text mb-2">Dusty & Dirty</h1>
+          <h1 className="text-4xl font-bold text-sky-800 mb-2">Dusty & Dirty</h1>
           <p className="text-sky-600">Logg inn eller opprett konto</p>
         </div>
 
-        <Card className="wow-card">
+        <Card className="shadow-lg border-sky-200">
           <CardContent className="p-6">
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -162,11 +162,6 @@ const Auth = () => {
                 <Alert className="mb-4 border-green-200 bg-green-50">
                   <AlertDescription className="text-green-700">
                     {message}
-                    {showPropertyRegistration && (
-                      <div className="mt-2">
-                        <p className="font-medium">Neste steg: Registrer din bolig</p>
-                      </div>
-                    )}
                   </AlertDescription>
                 </Alert>
               )}
