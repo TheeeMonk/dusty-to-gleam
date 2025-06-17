@@ -192,11 +192,18 @@ export type Database = {
       properties: {
         Row: {
           address: string
+          balcony: boolean | null
+          bathrooms: number | null
+          bedrooms: number | null
           created_at: string
+          elevator: boolean | null
+          floors: number | null
+          garden: boolean | null
           has_pets: boolean | null
           id: string
           name: string
           notes: string | null
+          parking: boolean | null
           rooms: number | null
           square_meters: number | null
           type: string
@@ -206,11 +213,18 @@ export type Database = {
         }
         Insert: {
           address: string
+          balcony?: boolean | null
+          bathrooms?: number | null
+          bedrooms?: number | null
           created_at?: string
+          elevator?: boolean | null
+          floors?: number | null
+          garden?: boolean | null
           has_pets?: boolean | null
           id?: string
           name: string
           notes?: string | null
+          parking?: boolean | null
           rooms?: number | null
           square_meters?: number | null
           type: string
@@ -220,11 +234,18 @@ export type Database = {
         }
         Update: {
           address?: string
+          balcony?: boolean | null
+          bathrooms?: number | null
+          bedrooms?: number | null
           created_at?: string
+          elevator?: boolean | null
+          floors?: number | null
+          garden?: boolean | null
           has_pets?: boolean | null
           id?: string
           name?: string
           notes?: string | null
+          parking?: boolean | null
           rooms?: number | null
           square_meters?: number | null
           type?: string

@@ -11,7 +11,14 @@ export interface Property {
   rooms?: number;
   square_meters?: number;
   windows?: number;
+  floors?: number;
+  bathrooms?: number;
+  bedrooms?: number;
   has_pets?: boolean;
+  balcony?: boolean;
+  garden?: boolean;
+  parking?: boolean;
+  elevator?: boolean;
   notes?: string;
   created_at?: string;
   updated_at?: string;

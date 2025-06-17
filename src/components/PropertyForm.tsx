@@ -45,7 +45,14 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
     rooms: '',
     square_meters: '',
     windows: '',
+    floors: '',
+    bathrooms: '',
+    bedrooms: '',
     has_pets: false,
+    balcony: false,
+    garden: false,
+    parking: false,
+    elevator: false,
     notes: ''
   });
   const [saving, setSaving] = useState(false);
@@ -59,7 +66,14 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
         rooms: editingProperty.rooms?.toString() || '',
         square_meters: editingProperty.square_meters?.toString() || '',
         windows: editingProperty.windows?.toString() || '',
+        floors: (editingProperty as any).floors?.toString() || '',
+        bathrooms: (editingProperty as any).bathrooms?.toString() || '',
+        bedrooms: (editingProperty as any).bedrooms?.toString() || '',
         has_pets: editingProperty.has_pets || false,
+        balcony: (editingProperty as any).balcony || false,
+        garden: (editingProperty as any).garden || false,
+        parking: (editingProperty as any).parking || false,
+        elevator: (editingProperty as any).elevator || false,
         notes: editingProperty.notes || ''
       });
     } else {
@@ -70,7 +84,14 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
         rooms: '',
         square_meters: '',
         windows: '',
+        floors: '',
+        bathrooms: '',
+        bedrooms: '',
         has_pets: false,
+        balcony: false,
+        garden: false,
+        parking: false,
+        elevator: false,
         notes: ''
       });
     }
@@ -112,7 +133,14 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
       rooms: formData.rooms ? parseInt(formData.rooms) : undefined,
       square_meters: formData.square_meters ? parseInt(formData.square_meters) : undefined,
       windows: formData.windows ? parseInt(formData.windows) : undefined,
+      floors: formData.floors ? parseInt(formData.floors) : undefined,
+      bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : undefined,
+      bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : undefined,
       has_pets: formData.has_pets,
+      balcony: formData.balcony,
+      garden: formData.garden,
+      parking: formData.parking,
+      elevator: formData.elevator,
       notes: formData.notes || undefined
     };
 
@@ -138,7 +166,14 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
       rooms: '',
       square_meters: '',
       windows: '',
+      floors: '',
+      bathrooms: '',
+      bedrooms: '',
       has_pets: false,
+      balcony: false,
+      garden: false,
+      parking: false,
+      elevator: false,
       notes: ''
     });
     onClose();
@@ -148,7 +183,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl gradient-text text-center flex items-center justify-center space-x-2">
             <Building className="h-6 w-6 text-sky-500" />
@@ -162,6 +197,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
         <Card className="border-0 shadow-none">
           <CardContent className="p-0">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-sm font-medium">
@@ -212,78 +248,178 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="rooms" className="text-sm font-medium">
-                    Antall rom
-                  </Label>
-                  <Input
-                    id="rooms"
-                    type="number"
-                    placeholder="F.eks. 4"
-                    value={formData.rooms}
-                    onChange={(e) => handleInputChange('rooms', e.target.value)}
-                    className="border-sky-200 focus:border-sky-400"
-                    min="1"
-                  />
+              {/* Property Details */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-900">Eiendomsdetaljer</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="rooms" className="text-sm font-medium">
+                      Antall rom
+                    </Label>
+                    <Input
+                      id="rooms"
+                      type="number"
+                      placeholder="F.eks. 4"
+                      value={formData.rooms}
+                      onChange={(e) => handleInputChange('rooms', e.target.value)}
+                      className="border-sky-200 focus:border-sky-400"
+                      min="1"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bedrooms" className="text-sm font-medium">
+                      Antall soverom
+                    </Label>
+                    <Input
+                      id="bedrooms"
+                      type="number"
+                      placeholder="F.eks. 3"
+                      value={formData.bedrooms}
+                      onChange={(e) => handleInputChange('bedrooms', e.target.value)}
+                      className="border-sky-200 focus:border-sky-400"
+                      min="0"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bathrooms" className="text-sm font-medium">
+                      Antall bad
+                    </Label>
+                    <Input
+                      id="bathrooms"
+                      type="number"
+                      placeholder="F.eks. 2"
+                      value={formData.bathrooms}
+                      onChange={(e) => handleInputChange('bathrooms', e.target.value)}
+                      className="border-sky-200 focus:border-sky-400"
+                      min="1"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="square_meters" className="text-sm font-medium">
-                    Kvadratmeter
-                  </Label>
-                  <Input
-                    id="square_meters"
-                    type="number"
-                    placeholder="F.eks. 120"
-                    value={formData.square_meters}
-                    onChange={(e) => handleInputChange('square_meters', e.target.value)}
-                    className="border-sky-200 focus:border-sky-400"
-                    min="1"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="square_meters" className="text-sm font-medium">
+                      Kvadratmeter
+                    </Label>
+                    <Input
+                      id="square_meters"
+                      type="number"
+                      placeholder="F.eks. 120"
+                      value={formData.square_meters}
+                      onChange={(e) => handleInputChange('square_meters', e.target.value)}
+                      className="border-sky-200 focus:border-sky-400"
+                      min="1"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="floors" className="text-sm font-medium">
+                      Antall etasjer
+                    </Label>
+                    <Input
+                      id="floors"
+                      type="number"
+                      placeholder="F.eks. 2"
+                      value={formData.floors}
+                      onChange={(e) => handleInputChange('floors', e.target.value)}
+                      className="border-sky-200 focus:border-sky-400"
+                      min="1"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="windows" className="text-sm font-medium">
+                      Antall vinduer
+                    </Label>
+                    <Input
+                      id="windows"
+                      type="number"
+                      placeholder="F.eks. 12"
+                      value={formData.windows}
+                      onChange={(e) => handleInputChange('windows', e.target.value)}
+                      className="border-sky-200 focus:border-sky-400"
+                      min="0"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="windows" className="text-sm font-medium">
-                    Antall vinduer
-                  </Label>
-                  <Input
-                    id="windows"
-                    type="number"
-                    placeholder="F.eks. 12"
-                    value={formData.windows}
-                    onChange={(e) => handleInputChange('windows', e.target.value)}
-                    className="border-sky-200 focus:border-sky-400"
-                    min="0"
-                  />
+                {/* Property Features */}
+                <div className="space-y-4">
+                  <h4 className="text-md font-medium text-gray-900">Fasiliteter</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex items-center space-x-3">
+                      <Switch
+                        id="has_pets"
+                        checked={formData.has_pets}
+                        onCheckedChange={(checked) => handleInputChange('has_pets', checked)}
+                      />
+                      <Label htmlFor="has_pets" className="text-sm font-medium">
+                        Har kjæledyr
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <Switch
+                        id="balcony"
+                        checked={formData.balcony}
+                        onCheckedChange={(checked) => handleInputChange('balcony', checked)}
+                      />
+                      <Label htmlFor="balcony" className="text-sm font-medium">
+                        Balkong
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <Switch
+                        id="garden"
+                        checked={formData.garden}
+                        onCheckedChange={(checked) => handleInputChange('garden', checked)}
+                      />
+                      <Label htmlFor="garden" className="text-sm font-medium">
+                        Hage
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <Switch
+                        id="parking"
+                        checked={formData.parking}
+                        onCheckedChange={(checked) => handleInputChange('parking', checked)}
+                      />
+                      <Label htmlFor="parking" className="text-sm font-medium">
+                        Parkering
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <Switch
+                        id="elevator"
+                        checked={formData.elevator}
+                        onCheckedChange={(checked) => handleInputChange('elevator', checked)}
+                      />
+                      <Label htmlFor="elevator" className="text-sm font-medium">
+                        Heis
+                      </Label>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <Switch
-                    id="has_pets"
-                    checked={formData.has_pets}
-                    onCheckedChange={(checked) => handleInputChange('has_pets', checked)}
-                  />
-                  <Label htmlFor="has_pets" className="text-sm font-medium">
-                    Har du kjæledyr i boligen?
-                  </Label>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="notes" className="text-sm font-medium">
-                    Spesielle instrukser eller merknader
-                  </Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="F.eks. ekstra oppmerksomhet på bestemte områder, allergier, tilgangsinformasjon..."
-                    value={formData.notes}
-                    onChange={(e) => handleInputChange('notes', e.target.value)}
-                    className="border-sky-200 focus:border-sky-400 min-h-[100px]"
-                    rows={4}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes" className="text-sm font-medium">
+                  Spesielle instrukser eller merknader
+                </Label>
+                <Textarea
+                  id="notes"
+                  placeholder="F.eks. ekstra oppmerksomhet på bestemte områder, allergier, tilgangsinformasjon..."
+                  value={formData.notes}
+                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  className="border-sky-200 focus:border-sky-400 min-h-[100px]"
+                  rows={4}
+                />
               </div>
 
               <div className="flex justify-end space-x-4 pt-6">
