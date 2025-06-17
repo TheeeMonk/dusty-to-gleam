@@ -8,6 +8,7 @@ import { useEmployeeBookings } from '@/hooks/useEmployeeBookings';
 import { useJobImages } from '@/hooks/useJobImages';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AllUpcomingBookings from './AllUpcomingBookings';
+import CalendarView from './CalendarView';
 import { 
   Clock, 
   MapPin, 
@@ -23,7 +24,8 @@ import {
   Home,
   Bath,
   Bed,
-  AlertCircle
+  AlertCircle,
+  Calendar
 } from 'lucide-react';
 import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -35,6 +37,7 @@ const EmployeeDashboard: React.FC = () => {
   const { bookings, loading, confirmBooking, startJob, completeJob } = useEmployeeBookings();
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
+  const [showCalendarView, setShowCalendarView] = useState(false);
   const { uploadImage, uploading } = useJobImages(selectedBookingId || undefined);
 
   console.log('All bookings in dashboard:', bookings);
@@ -48,6 +51,17 @@ const EmployeeDashboard: React.FC = () => {
           <p className="text-sky-600">Laster bookinger...</p>
         </div>
       </div>
+    );
+  }
+
+  // If showing calendar view, render that component
+  if (showCalendarView) {
+    return (
+      <CalendarView 
+        bookings={bookings} 
+        onConfirmBooking={handleConfirmBooking}
+        onBack={() => setShowCalendarView(false)} 
+      />
     );
   }
 
@@ -440,15 +454,26 @@ const EmployeeDashboard: React.FC = () => {
                 <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-dirty-500" />
                 <span>{t('dashboard.upcomingJobs')}</span>
               </CardTitle>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowAllUpcoming(true)}
-                className="flex items-center space-x-1"
-              >
-                <Eye className="h-4 w-4" />
-                <span>Se alle</span>
-              </Button>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowCalendarView(true)}
+                  className="flex items-center space-x-1"
+                >
+                  <Calendar className="h-4 w-4" />
+                  <span>Kalender</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowAllUpcoming(true)}
+                  className="flex items-center space-x-1"
+                >
+                  <Eye className="h-4 w-4" />
+                  <span>Se alle</span>
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
