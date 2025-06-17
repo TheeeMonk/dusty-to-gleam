@@ -9,6 +9,7 @@ import RegistrationForm, { RegistrationData } from '@/components/RegistrationFor
 import CustomerDashboard from '@/components/CustomerDashboard';
 import EmployeeDashboard from '@/components/EmployeeDashboard';
 import BottomNavigation from '@/components/BottomNavigation';
+import MoreSection from '@/components/MoreSection';
 
 type AppState = 'intro' | 'userType' | 'register' | 'customerDashboard' | 'employeeDashboard';
 
@@ -70,6 +71,16 @@ const Index = () => {
     console.log('Registration data to save to Supabase:', data);
   };
 
+  const handleSwitchToEmployee = () => {
+    setAppState('employeeDashboard');
+    setActiveTab('dashboard');
+  };
+
+  const handleSwitchToCustomer = () => {
+    setAppState('customerDashboard');
+    setActiveTab('dashboard');
+  };
+
   const mockCustomerData = {
     name: user?.email || registrationData?.fullName || 'Anna Hansen',
     loyaltyPoints: 23
@@ -88,11 +99,28 @@ const Index = () => {
 
   console.log('About to render component for state:', appState);
 
+  const currentUserRole = isEmployee() ? 'employee' : 'customer';
+
   return (
     <LanguageProvider>
       <div className="w-full">
-        {/* If user is authenticated, show appropriate dashboard based on role */}
-        {user && appState === 'customerDashboard' && (
+        {/* If user is authenticated, show appropriate content based on active tab */}
+        {user && activeTab === 'more' && (
+          <>
+            <MoreSection 
+              onSwitchToEmployee={handleSwitchToEmployee}
+              onSwitchToCustomer={handleSwitchToCustomer}
+            />
+            <BottomNavigation 
+              userRole={currentUserRole}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+          </>
+        )}
+
+        {/* Customer Dashboard */}
+        {user && appState === 'customerDashboard' && activeTab !== 'more' && (
           <>
             <CustomerDashboard 
               customerData={mockCustomerData} 
@@ -107,7 +135,8 @@ const Index = () => {
           </>
         )}
         
-        {user && appState === 'employeeDashboard' && (
+        {/* Employee Dashboard */}
+        {user && appState === 'employeeDashboard' && activeTab !== 'more' && (
           <>
             <EmployeeDashboard />
             <BottomNavigation 

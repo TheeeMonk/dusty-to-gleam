@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/hooks/useNotifications';
 
 export interface Booking {
   id: string;
@@ -24,6 +25,7 @@ export interface Booking {
 
 export const useBookings = () => {
   const { user } = useAuth();
+  const { sendBookingConfirmation, scheduleReminder } = useNotifications();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +82,7 @@ export const useBookings = () => {
         .insert([{
           ...bookingData,
           user_id: user.id,
-          status: 'pending' // Changed back to 'pending' to require manual approval
+          status: 'pending'
         }])
         .select()
         .single();
@@ -135,6 +137,31 @@ export const useBookings = () => {
           booking.id === id ? typedBooking : booking
         )
       );
+
+      // Send notification if booking was confirmed
+      if (updates.status === 'confirmed' && typedBooking.status === 'confirmed') {
+        console.log('Booking confirmed, sending notification');
+        
+        // Send confirmation notification
+        sendBookingConfirmation({
+          customerName: user.email || 'Kunde',
+          serviceType: typedBooking.service_type,
+          scheduledDate: typedBooking.scheduled_date,
+          scheduledTime: typedBooking.scheduled_time
+        });
+
+        // Schedule reminder if date and time are available
+        if (typedBooking.scheduled_date && typedBooking.scheduled_time) {
+          scheduleReminder({
+            scheduledDate: typedBooking.scheduled_date,
+            scheduledTime: typedBooking.scheduled_time,
+            customerName: user.email || 'Kunde',
+            serviceType: typedBooking.service_type,
+            address: 'Din bolig' // This would need to be fetched from property data
+          });
+        }
+      }
+
       return typedBooking;
     } catch (err) {
       console.error('Error updating booking:', err);
