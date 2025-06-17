@@ -38,7 +38,7 @@ interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   properties: Property[];
-  onAddProperty?: (property: Omit<Property, 'id'>) => void;
+  onAddProperty?: (property: Omit<Property, 'id'>) => Promise<Property>;
 }
 
 const BookingModal: React.FC<BookingModalProps> = ({ 
@@ -109,9 +109,9 @@ const BookingModal: React.FC<BookingModalProps> = ({
     setIsPropertyFormOpen(true);
   };
 
-  const handlePropertyFormSave = (newProperty: Omit<Property, 'id'>) => {
+  const handlePropertyFormSave = async (newProperty: Omit<Property, 'id' | 'created_at' | 'updated_at'>) => {
     if (onAddProperty) {
-      onAddProperty(newProperty);
+      await onAddProperty(newProperty);
     }
     setIsPropertyFormOpen(false);
   };
