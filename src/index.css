@@ -3,7 +3,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom color scheme for Dusty & Dirty */
+/* Custom color scheme for Dusty & Dirty - Light Blue Theme */
 
 @layer base {
   :root {
@@ -16,16 +16,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 199 89% 48%;
+    --primary: 195 100% 75%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 142 76% 36%;
+    --secondary: 195 100% 85%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 142 76% 36%;
+    --accent: 195 100% 80%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
@@ -33,7 +33,7 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 199 89% 48%;
+    --ring: 195 100% 75%;
 
     --radius: 0.75rem;
 
@@ -57,16 +57,16 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 199 89% 48%;
+    --primary: 195 100% 75%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
-    --secondary: 142 76% 36%;
+    --secondary: 195 100% 85%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 142 76% 36%;
+    --accent: 195 100% 80%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
@@ -92,20 +92,24 @@
   }
 
   body {
-    @apply bg-gradient-to-br from-dusty-50 to-dirty-50 text-foreground min-h-screen;
+    @apply bg-gradient-to-br from-sky-50 to-blue-100 text-foreground min-h-screen;
   }
 }
 
 @layer components {
   .gradient-text {
-    @apply bg-gradient-to-r from-dusty-600 to-dirty-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent;
   }
   
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+    @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-2 hover:scale-105;
   }
   
   .glass-effect {
-    @apply bg-white/80 backdrop-blur-sm border border-white/20;
+    @apply bg-white/90 backdrop-blur-lg border border-white/30 shadow-2xl;
+  }
+
+  .wow-card {
+    @apply bg-gradient-to-br from-white/95 to-sky-50/95 backdrop-blur-xl border border-sky-200/50 shadow-2xl;
   }
 }
