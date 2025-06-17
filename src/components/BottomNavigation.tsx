@@ -33,7 +33,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
             className="flex flex-col items-center space-y-1 px-6 py-3"
           >
             <User className="h-5 w-5" />
-            <span className="text-xs">Min Profil</span>
+            <span className="text-xs">Profil</span>
           </Button>
           
           <Button
@@ -42,7 +42,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
             className="flex flex-col items-center space-y-1 px-6 py-3"
           >
             <MapPin className="h-5 w-5" />
-            <span className="text-xs">Mine Boliger</span>
+            <span className="text-xs">Boliger</span>
           </Button>
           
           {userRole === 'employee' && (
@@ -52,7 +52,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
               className="flex flex-col items-center space-y-1 px-6 py-3"
             >
               <Briefcase className="h-5 w-5" />
-              <span className="text-xs">Ansatt Portal</span>
+              <span className="text-xs">Ansatt</span>
             </Button>
           )}
         </div>

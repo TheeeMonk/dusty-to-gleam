@@ -8,6 +8,7 @@ import UserTypeSelection from '@/components/UserTypeSelection';
 import RegistrationForm, { RegistrationData } from '@/components/RegistrationForm';
 import CustomerDashboard from '@/components/CustomerDashboard';
 import EmployeeDashboard from '@/components/EmployeeDashboard';
+import BottomNavigation from '@/components/BottomNavigation';
 
 type AppState = 'intro' | 'userType' | 'register' | 'customerDashboard' | 'employeeDashboard';
 
@@ -18,6 +19,7 @@ const Index = () => {
   const [appState, setAppState] = useState<AppState>('intro');
   const [userType, setUserType] = useState<'customer' | 'employee' | null>(null);
   const [registrationData, setRegistrationData] = useState<RegistrationData | null>(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   console.log('Current app state:', appState);
   console.log('Current user type:', userType);
@@ -91,11 +93,29 @@ const Index = () => {
       <div className="w-full">
         {/* If user is authenticated, show appropriate dashboard based on role */}
         {user && appState === 'customerDashboard' && (
-          <CustomerDashboard customerData={mockCustomerData} />
+          <>
+            <CustomerDashboard 
+              customerData={mockCustomerData} 
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+            <BottomNavigation 
+              userRole="customer"
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+          </>
         )}
         
         {user && appState === 'employeeDashboard' && (
-          <EmployeeDashboard />
+          <>
+            <EmployeeDashboard />
+            <BottomNavigation 
+              userRole="employee"
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+          </>
         )}
         
         {/* If no user, show the flow */}
