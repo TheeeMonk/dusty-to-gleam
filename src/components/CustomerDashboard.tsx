@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProperties } from '@/hooks/useProperties';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import BottomNavigation from '@/components/BottomNavigation';
 import BookingModal from '@/components/BookingModal';
 import PropertyForm from '@/components/PropertyForm';
@@ -49,6 +49,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
   const { t } = useLanguage();
   const { user, signOut } = useAuth();
   const { properties, loading, addProperty, updateProperty } = useProperties();
+  const { profile } = useUserProfile();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isPropertyFormOpen, setIsPropertyFormOpen] = useState(false);
@@ -106,6 +107,9 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
     await signOut();
   };
 
+  // Get display name - prioritize profile full name, fallback to email
+  const displayName = profile?.full_name || user?.email || 'Bruker';
+
   const renderDashboard = () => (
     <div className="space-y-8 pb-24">
       {/* Header with logout */}
@@ -129,12 +133,12 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
           Velkommen tilbake!
         </h1>
         <p className="text-xl text-sky-600 font-medium animate-fade-in">
-          {user?.email} ✨
+          {displayName} ✨
         </p>
       </div>
 
-      {/* Next Cleaning Card */}
-      <Card className="wow-card card-hover animate-fade-in">
+      {/* Next Cleaning Card - Improved styling */}
+      <Card className="wow-card card-hover animate-fade-in shadow-2xl rounded-3xl border-0 bg-gradient-to-br from-white/90 via-sky-50/90 to-blue-50/90 backdrop-blur-xl">
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center space-x-3 text-2xl">
             <Calendar className="h-7 w-7 text-sky-500 animate-float" />
@@ -175,7 +179,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
               
               <Button 
                 onClick={() => setIsBookingModalOpen(true)}
-                className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl"
                 size="lg"
               >
                 <Plus className="h-5 w-5 mr-2" />
@@ -188,7 +192,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
               <p className="text-xl mb-6 text-sky-600">Ingen planlagt rengjøring</p>
               <Button 
                 onClick={() => setIsBookingModalOpen(true)}
-                className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 px-8 py-3 text-lg"
+                className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 px-8 py-3 text-lg rounded-2xl"
                 size="lg"
               >
                 <Plus className="h-5 w-5 mr-2" />
@@ -332,7 +336,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
       
       <Card className="wow-card">
         <CardContent className="p-8 text-center">
-          <h2 className="text-2xl font-semibold mb-4">{user?.email}</h2>
+          <h2 className="text-2xl font-semibold mb-4">{displayName}</h2>
           <p className="text-muted-foreground mb-6">Profilinnstillinger kommer snart...</p>
           <Button onClick={handleLogout} variant="outline">
             <LogOut className="h-4 w-4 mr-2" />

@@ -111,7 +111,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
 
   const handlePropertyFormSave = async (newProperty: Omit<Property, 'id' | 'created_at' | 'updated_at'>) => {
     if (onAddProperty) {
-      await onAddProperty(newProperty);
+      const savedProperty = await onAddProperty(newProperty);
+      if (savedProperty) {
+        console.log('New property saved:', savedProperty);
+      }
     }
     setIsPropertyFormOpen(false);
   };
