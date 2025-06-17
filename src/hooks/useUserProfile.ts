@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { ErrorHandler } from '@/utils/errorHandler';
+import { logger } from '@/utils/logger';
 
 export interface UserProfile {
   id: string;
@@ -25,21 +27,25 @@ export const useUserProfile = () => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      setError(null);
+      
+      const { data, error: supabaseError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        setError(error.message);
+      if (supabaseError) {
+        const appError = ErrorHandler.handle(supabaseError, { userId: user.id });
+        setError(ErrorHandler.getDisplayMessage(appError));
+        logger.error('Failed to fetch user profile', { userId: user.id });
       } else {
         setProfile(data);
+        logger.info('User profile fetched successfully');
       }
     } catch (err) {
-      console.error('Error fetching profile:', err);
-      setError(err instanceof Error ? err.message : 'En feil oppstod');
+      const appError = ErrorHandler.handle(err, { userId: user.id });
+      setError(ErrorHandler.getDisplayMessage(appError));
     } finally {
       setLoading(false);
     }

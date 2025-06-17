@@ -9,6 +9,10 @@ import { Switch } from '@/components/ui/switch';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { Home, User, MapPin, Phone } from 'lucide-react';
+import { InputSanitizer } from '@/utils/inputSanitizer';
+import { ErrorHandler } from '@/utils/errorHandler';
+import { RateLimiter } from '@/utils/rateLimiter';
+import { logger } from '@/utils/logger';
 
 interface RegistrationFormProps {
   onComplete: (data: RegistrationData) => void;
@@ -51,34 +55,137 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
   });
 
   const [errors, setErrors] = useState<Partial<RegistrationData>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<RegistrationData> = {};
 
-    if (!formData.fullName.trim()) newErrors.fullName = t('form.required');
-    if (!formData.phone.trim()) newErrors.phone = t('form.required');
-    if (!formData.address.trim()) newErrors.address = t('form.required');
-    if (!formData.postalCode.trim()) newErrors.postalCode = t('form.required');
-    if (!formData.municipality.trim()) newErrors.municipality = t('form.required');
-    if (!formData.houseType) newErrors.houseType = t('form.required');
-    if (!formData.windows) newErrors.windows = t('form.required');
+    try {
+      // Sanitize and validate inputs
+      if (!formData.fullName.trim()) {
+        newErrors.fullName = t('form.required');
+      } else {
+        InputSanitizer.sanitizeText(formData.fullName);
+      }
+
+      if (!formData.phone.trim()) {
+        newErrors.phone = t('form.required');
+      } else {
+        try {
+          InputSanitizer.sanitizePhone(formData.phone);
+        } catch (error) {
+          newErrors.phone = 'Invalid phone number format';
+        }
+      }
+
+      if (!formData.address.trim()) {
+        newErrors.address = t('form.required');
+      } else {
+        InputSanitizer.sanitizeAddress(formData.address);
+      }
+
+      if (!formData.postalCode.trim()) {
+        newErrors.postalCode = t('form.required');
+      } else {
+        InputSanitizer.sanitizeText(formData.postalCode);
+      }
+
+      if (!formData.municipality.trim()) {
+        newErrors.municipality = t('form.required');
+      } else {
+        InputSanitizer.sanitizeText(formData.municipality);
+      }
+
+      if (!formData.houseType) {
+        newErrors.houseType = t('form.required');
+      }
+
+      if (!formData.windows) {
+        newErrors.windows = t('form.required');
+      }
+
+      // Validate numeric fields
+      try {
+        InputSanitizer.sanitizeNumber(formData.rooms, 1, 50);
+        InputSanitizer.sanitizeNumber(formData.bathrooms, 1, 20);
+        InputSanitizer.sanitizeNumber(formData.floors, 1, 10);
+        InputSanitizer.sanitizeNumber(formData.squareMeters, 20, 10000);
+      } catch (error) {
+        const appError = ErrorHandler.handle(error);
+        logger.warn('Form validation error', { error: appError });
+      }
+
+    } catch (error) {
+      const appError = ErrorHandler.handle(error);
+      toast({
+        title: 'Validation Error',
+        description: ErrorHandler.getDisplayMessage(appError),
+        variant: 'destructive'
+      });
+      return false;
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      console.log('Registration form submitted:', formData);
+    // Rate limiting check
+    const rateLimitKey = `registration_${Date.now().toString().slice(0, -3)}`; // Per minute
+    if (!RateLimiter.check(rateLimitKey, 3, 60000)) {
+      toast({
+        title: 'Too Many Attempts',
+        description: 'Please wait before submitting again.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Sanitize all form data before processing
+      const sanitizedData: RegistrationData = {
+        fullName: InputSanitizer.sanitizeText(formData.fullName),
+        phone: InputSanitizer.sanitizePhone(formData.phone),
+        address: InputSanitizer.sanitizeAddress(formData.address),
+        postalCode: InputSanitizer.sanitizeText(formData.postalCode),
+        municipality: InputSanitizer.sanitizeText(formData.municipality),
+        houseType: formData.houseType,
+        rooms: InputSanitizer.sanitizeNumber(formData.rooms, 1, 50),
+        bathrooms: InputSanitizer.sanitizeNumber(formData.bathrooms, 1, 20),
+        windows: formData.windows,
+        squareMeters: InputSanitizer.sanitizeNumber(formData.squareMeters, 20, 10000),
+        floors: InputSanitizer.sanitizeNumber(formData.floors, 1, 10),
+        pets: formData.pets,
+        language: language,
+      };
+
+      logger.info('Registration form submitted successfully');
+      
       toast({
         title: language === 'no' ? 'Registrering fullført!' : 'Registration completed!',
         description: language === 'no' ? 
           'Velkommen til Dusty & Dirty! Vi kommer snart i kontakt.' : 
           'Welcome to Dusty & Dirty! We will contact you soon.',
       });
-      onComplete(formData);
+      
+      onComplete(sanitizedData);
+    } catch (error) {
+      const appError = ErrorHandler.handle(error, { formData: 'REDACTED' });
+      toast({
+        title: 'Registration Failed',
+        description: ErrorHandler.getDisplayMessage(appError),
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -114,6 +221,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
                   value={formData.fullName}
                   onChange={(e) => updateField('fullName', e.target.value)}
                   className={errors.fullName ? 'border-red-500' : ''}
+                  maxLength={100}
+                  disabled={isSubmitting}
                 />
                 {errors.fullName && (
                   <p className="text-sm text-red-500">{errors.fullName}</p>
@@ -131,6 +240,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
                   value={formData.phone}
                   onChange={(e) => updateField('phone', e.target.value)}
                   className={errors.phone ? 'border-red-500' : ''}
+                  maxLength={20}
+                  disabled={isSubmitting}
                 />
                 {errors.phone && (
                   <p className="text-sm text-red-500">{errors.phone}</p>
@@ -284,8 +395,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
               type="submit" 
               className="w-full bg-gradient-to-r from-dusty-500 to-dirty-500 hover:from-dusty-600 hover:to-dirty-600"
               size="lg"
+              disabled={isSubmitting}
             >
-              {t('register.submit')}
+              {isSubmitting ? 'Submitting...' : t('register.submit')}
             </Button>
           </form>
         </CardContent>
