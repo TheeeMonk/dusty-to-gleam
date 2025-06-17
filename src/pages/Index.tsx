@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRoles } from '@/hooks/useUserRoles';
 import IntroScreen from '@/components/IntroScreen';
 import UserTypeSelection from '@/components/UserTypeSelection';
 import RegistrationForm, { RegistrationData } from '@/components/RegistrationForm';
@@ -12,7 +13,7 @@ type AppState = 'intro' | 'userType' | 'register' | 'customerDashboard' | 'emplo
 
 const Index = () => {
   const { user, loading } = useAuth();
-  console.log('Index component is rendering');
+  const { userRoles, loading: rolesLoading, isEmployee } = useUserRoles();
   
   const [appState, setAppState] = useState<AppState>('intro');
   const [userType, setUserType] = useState<'customer' | 'employee' | null>(null);
@@ -21,14 +22,22 @@ const Index = () => {
   console.log('Current app state:', appState);
   console.log('Current user type:', userType);
   console.log('User authenticated:', !!user);
+  console.log('User roles:', userRoles);
 
   useEffect(() => {
-    // If user is authenticated, go directly to customer dashboard
-    if (user && !loading) {
-      console.log('User is authenticated, going to customer dashboard');
-      setAppState('customerDashboard');
+    // If user is authenticated and roles are loaded, determine which dashboard to show
+    if (user && !loading && !rolesLoading) {
+      console.log('User is authenticated, checking roles...');
+      
+      if (isEmployee()) {
+        console.log('User is employee, going to employee dashboard');
+        setAppState('employeeDashboard');
+      } else {
+        console.log('User is customer, going to customer dashboard');
+        setAppState('customerDashboard');
+      }
     }
-  }, [user, loading]);
+  }, [user, loading, rolesLoading, userRoles, isEmployee]);
 
   const handleContinueFromIntro = () => {
     console.log('Continuing from intro screen');
@@ -64,7 +73,7 @@ const Index = () => {
     loyaltyPoints: 23
   };
 
-  if (loading) {
+  if (loading || rolesLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 flex items-center justify-center">
         <div className="text-center">
@@ -80,9 +89,13 @@ const Index = () => {
   return (
     <LanguageProvider>
       <div className="w-full">
-        {/* If user is authenticated, show customer dashboard */}
+        {/* If user is authenticated, show appropriate dashboard based on role */}
         {user && appState === 'customerDashboard' && (
           <CustomerDashboard customerData={mockCustomerData} />
+        )}
+        
+        {user && appState === 'employeeDashboard' && (
+          <EmployeeDashboard />
         )}
         
         {/* If no user, show the flow */}
@@ -98,7 +111,7 @@ const Index = () => {
           <RegistrationForm onComplete={handleRegistrationComplete} />
         )}
         
-        {appState === 'employeeDashboard' && (
+        {!user && appState === 'employeeDashboard' && (
           <EmployeeDashboard />
         )}
       </div>

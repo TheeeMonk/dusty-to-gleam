@@ -15,6 +15,9 @@ export interface Booking {
   estimated_price_min?: number; // in øre
   estimated_price_max?: number; // in øre
   special_instructions?: string;
+  assigned_employee_id?: string;
+  approved_at?: string;
+  approved_by?: string;
   created_at: string;
   updated_at: string;
 }
@@ -35,7 +38,7 @@ export const useBookings = () => {
       const { data, error } = await supabase
         .from('bookings')
         .select('*')
-        .eq('user_id', user.id) // Add user filter
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -77,7 +80,7 @@ export const useBookings = () => {
         .insert([{
           ...bookingData,
           user_id: user.id,
-          status: 'confirmed' // Change from 'pending' to 'confirmed'
+          status: 'pending' // Changed back to 'pending' to require manual approval
         }])
         .select()
         .single();
