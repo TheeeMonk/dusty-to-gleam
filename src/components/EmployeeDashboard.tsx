@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useEmployeeBookings } from '@/hooks/useEmployeeBookings';
 import { useJobImages } from '@/hooks/useJobImages';
 import { useIsMobile } from '@/hooks/use-mobile';
+import AllUpcomingBookings from './AllUpcomingBookings';
 import { 
   Clock, 
   MapPin, 
@@ -18,7 +18,8 @@ import {
   CalendarDays,
   Timer,
   FileText,
-  CheckCircle
+  CheckCircle,
+  Eye
 } from 'lucide-react';
 import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -29,6 +30,7 @@ const EmployeeDashboard: React.FC = () => {
   const isMobile = useIsMobile();
   const { bookings, loading, confirmBooking, startJob, completeJob } = useEmployeeBookings();
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const { uploadImage, uploading } = useJobImages(selectedBookingId || undefined);
 
   console.log('All bookings in dashboard:', bookings);
@@ -43,6 +45,11 @@ const EmployeeDashboard: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // If showing all upcoming bookings, render that component
+  if (showAllUpcoming) {
+    return <AllUpcomingBookings onBack={() => setShowAllUpcoming(false)} />;
   }
 
   // Show ALL bookings for today, including pending ones
@@ -321,10 +328,21 @@ const EmployeeDashboard: React.FC = () => {
         {/* Upcoming Jobs - Mobile optimized */}
         <Card className="glass-effect card-hover">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-              <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-dirty-500" />
-              <span>{t('dashboard.upcomingJobs')}</span>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
+                <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-dirty-500" />
+                <span>{t('dashboard.upcomingJobs')}</span>
+              </CardTitle>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowAllUpcoming(true)}
+                className="flex items-center space-x-1"
+              >
+                <Eye className="h-4 w-4" />
+                <span>Se alle</span>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
             {upcomingJobs.length === 0 ? (
