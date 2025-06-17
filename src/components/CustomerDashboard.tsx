@@ -160,48 +160,48 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
                   </div>
                 </div>
               
-              <div className="flex justify-center space-x-4">
-                <Badge variant="secondary" className="bg-sky-100 text-sky-800 text-lg px-4 py-2">
-                  {nextCleaning.service_type}
-                </Badge>
-                
-                <Badge 
-                  variant={nextCleaning.status === 'confirmed' ? 'default' : 'outline'} 
-                  className={nextCleaning.status === 'confirmed' ? 'bg-green-500' : 'bg-yellow-500 text-yellow-800'}
-                >
-                  {nextCleaning.status === 'confirmed' ? (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Bekreftet
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      Venter på bekreftelse
-                    </>
-                  )}
-                </Badge>
-              </div>
-              
-              {nextCleaning.status === 'pending' && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <p className="text-yellow-800 text-sm">
-                    <AlertCircle className="h-4 w-4 inline mr-2" />
-                    Din bestilling venter på bekreftelse fra våre ansatte. Du vil motta en bekreftelse så snart som mulig.
-                  </p>
+                <div className="flex justify-center space-x-4">
+                  <Badge variant="secondary" className="bg-sky-100 text-sky-800 text-lg px-4 py-2">
+                    {nextCleaning.service_type}
+                  </Badge>
+                  
+                  <Badge 
+                    variant={nextCleaning.status === 'confirmed' ? 'default' : 'outline'} 
+                    className={nextCleaning.status === 'confirmed' ? 'bg-green-500' : 'bg-yellow-500 text-yellow-800'}
+                  >
+                    {nextCleaning.status === 'confirmed' ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Bekreftet
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        Venter på bekreftelse
+                      </>
+                    )}
+                  </Badge>
                 </div>
-              )}
-              
-              <div className="flex justify-center">
-                <Button 
-                  className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white px-8 py-3 text-lg shadow-xl"
-                  size="lg"
-                >
-                  Se detaljer
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </div>
-            </>
+                
+                {nextCleaning.status === 'pending' && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-yellow-800 text-sm">
+                      <AlertCircle className="h-4 w-4 inline mr-2" />
+                      Din bestilling venter på bekreftelse fra våre ansatte. Du vil motta en bekreftelse så snart som mulig.
+                    </p>
+                  </div>
+                )}
+                
+                <div className="flex justify-center">
+                  <Button 
+                    className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white px-8 py-3 text-lg shadow-xl"
+                    size="lg"
+                  >
+                    Se detaljer
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </div>
+              </>
             ) : (
               <div className="space-y-6">
                 <div className="text-muted-foreground text-lg">
@@ -390,7 +390,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
       <PropertyForm 
         isOpen={isPropertyFormOpen}
         onClose={() => setIsPropertyFormOpen(false)}
-        property={editingProperty}
+        editingProperty={editingProperty}
         onSave={handleAddProperty}
       />
     </div>
