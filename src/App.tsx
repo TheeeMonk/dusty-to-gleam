@@ -35,6 +35,8 @@ const queryClient = new QueryClient({
 
 const App = () => {
   console.log('App.tsx: App component rendering');
+  console.log('App.tsx: Current URL:', window.location.href);
+  console.log('App.tsx: Current pathname:', window.location.pathname);
   
   return (
     <ErrorBoundary>
@@ -45,7 +47,12 @@ const App = () => {
             <SonnerToaster />
             <BrowserRouter>
               <Routes>
-                <Route path="/auth" element={<Auth />} />
+                <Route path="/auth" element={
+                  <>
+                    {console.log('App.tsx: Rendering Auth route')}
+                    <Auth />
+                  </>
+                } />
                 <Route path="/" element={
                   <ProtectedRoute>
                     <Index />
