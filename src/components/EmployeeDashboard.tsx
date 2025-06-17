@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +28,9 @@ const EmployeeDashboard: React.FC = () => {
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const { uploadImage, uploading } = useJobImages(selectedBookingId || undefined);
 
+  console.log('All bookings in dashboard:', bookings);
+  console.log('Total bookings count:', bookings.length);
+
   if (loading) {
     return (
       <div className="min-h-screen p-4 flex items-center justify-center">
@@ -40,11 +42,13 @@ const EmployeeDashboard: React.FC = () => {
     );
   }
 
+  // Show ALL bookings for today, including pending ones
   const todaysJobs = bookings.filter(booking => {
     if (!booking.scheduled_date) return false;
     return isToday(new Date(booking.scheduled_date));
   });
 
+  // Show ALL upcoming bookings, including pending ones
   const upcomingJobs = bookings.filter(booking => {
     if (!booking.scheduled_date) return false;
     const bookingDate = new Date(booking.scheduled_date);
@@ -53,6 +57,9 @@ const EmployeeDashboard: React.FC = () => {
 
   const activeJobs = todaysJobs.filter(job => job.status === 'in_progress');
   const completedToday = todaysJobs.filter(job => job.status === 'completed').length;
+
+  console.log('Todays jobs:', todaysJobs);
+  console.log('Upcoming jobs:', upcomingJobs);
 
   const handleStartJob = async (jobId: string) => {
     await startJob(jobId);
@@ -122,6 +129,13 @@ const EmployeeDashboard: React.FC = () => {
           <p className="text-lg text-muted-foreground">
             God morgen! La oss gjøre hjemmene rene og fine ✨
           </p>
+        </div>
+
+        {/* Debug info */}
+        <div className="mb-4 p-4 bg-gray-100 rounded">
+          <p className="text-sm">Debug: Totalt {bookings.length} bookinger funnet</p>
+          <p className="text-sm">Dagens oppdrag: {todaysJobs.length}</p>
+          <p className="text-sm">Status fordeling: {JSON.stringify(bookings.reduce((acc, b) => { acc[b.status] = (acc[b.status] || 0) + 1; return acc; }, {} as any))}</p>
         </div>
 
         {/* Stats Cards */}
@@ -209,7 +223,7 @@ const EmployeeDashboard: React.FC = () => {
                       </div>
 
                       <div className="flex flex-col space-y-2">
-                        {job.status === 'confirmed' && (
+                        {(job.status === 'confirmed' || job.status === 'pending') && (
                           <Button 
                             onClick={() => handleStartJob(job.id)}
                             className="bg-gradient-to-r from-dusty-500 to-dirty-500 hover:from-dusty-600 hover:to-dirty-600"

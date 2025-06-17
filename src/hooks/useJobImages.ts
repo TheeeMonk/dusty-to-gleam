@@ -32,7 +32,14 @@ export const useJobImages = (bookingId?: string) => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setImages(data || []);
+      
+      // Type assertion to ensure proper typing
+      const typedImages = (data || []).map(img => ({
+        ...img,
+        image_type: img.image_type as 'before' | 'after'
+      }));
+      
+      setImages(typedImages);
     } catch (err) {
       console.error('Error fetching job images:', err);
     } finally {

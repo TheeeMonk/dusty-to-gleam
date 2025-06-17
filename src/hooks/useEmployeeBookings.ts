@@ -45,13 +45,12 @@ export const useEmployeeBookings = () => {
       setError(null);
       console.log('Fetching bookings for employee:', user.id);
 
-      // Fetch all bookings with customer and property info
+      // First, fetch bookings with property info
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
           *,
-          properties!inner(name, address),
-          profiles!inner(full_name)
+          properties(name, address)
         `)
         .order('scheduled_date', { ascending: true, nullsFirst: false })
         .order('scheduled_time', { ascending: true, nullsFirst: false })
@@ -62,16 +61,36 @@ export const useEmployeeBookings = () => {
         throw bookingsError;
       }
 
+      console.log('Raw bookings data:', bookingsData);
+
+      // Then fetch user profiles separately to get customer names
+      const userIds = bookingsData?.map(booking => booking.user_id) || [];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      }
+
+      // Create a map of user IDs to profile data
+      const profilesMap = new Map();
+      profilesData?.forEach(profile => {
+        profilesMap.set(profile.id, profile);
+      });
+
       // Transform the data to include customer and property info
       const transformedBookings = (bookingsData || []).map(booking => ({
         ...booking,
-        customer_email: booking.profiles?.full_name || 'Ukjent kunde',
+        customer_email: profilesMap.get(booking.user_id)?.full_name || 'Ukjent kunde',
         property_address: booking.properties?.address || 'Ukjent adresse',
         property_name: booking.properties?.name || 'Ukjent eiendom',
         status: booking.status as EmployeeBooking['status']
       }));
 
-      console.log('Fetched employee bookings:', transformedBookings);
+      console.log('Transformed bookings:', transformedBookings);
+      console.log('Pending bookings:', transformedBookings.filter(b => b.status === 'pending'));
       setBookings(transformedBookings);
     } catch (err) {
       console.error('Error fetching employee bookings:', err);
