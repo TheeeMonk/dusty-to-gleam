@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,8 @@ import PropertyForm from './PropertyForm';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useBookings } from '@/hooks/useBookings';
 import { useProperties } from '@/hooks/useProperties';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { format, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -40,11 +41,16 @@ interface CustomerDashboardProps {
 
 const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) => {
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
   const { bookings, loading: bookingsLoading } = useBookings();
   const { properties, loading: propertiesLoading, addProperty } = useProperties();
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isPropertyFormOpen, setIsPropertyFormOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<any>(null);
+
+  // Get the display name - prioritize profile full_name, then customerData.name, then email
+  const displayName = profile?.full_name || customerData.name || user?.email || 'Bruker';
 
   // Get the next scheduled booking - now includes both confirmed and pending bookings
   const nextCleaning = bookings
@@ -111,7 +117,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
         {/* Header */}
         <div className="text-center animate-fade-in px-2">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">
-            <span className="gradient-text">Velkommen tilbake, {customerData.name}! </span>
+            <span className="gradient-text">Velkommen tilbake, {displayName}! </span>
             <Sparkles className="inline h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-yellow-500 animate-float" />
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground">
