@@ -27,18 +27,29 @@ export const useUserRoles = () => {
     
     try {
       setLoading(true);
+      setError(null);
+      console.log('Fetching roles for user:', user.id);
+      
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching roles:', error);
+        throw error;
+      }
       
       const roles = (data || []).map(item => item.role as UserRole);
+      console.log('Fetched user roles:', roles);
       setUserRoles(roles);
     } catch (err) {
       console.error('Error fetching user roles:', err);
       setError(err instanceof Error ? err.message : 'En feil oppstod');
+      // Set default customer role if there's an error and no roles exist
+      if (userRoles.length === 0) {
+        setUserRoles(['customer']);
+      }
     } finally {
       setLoading(false);
     }
