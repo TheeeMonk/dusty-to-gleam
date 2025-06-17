@@ -10,6 +10,7 @@ export interface Booking {
   service_type: string;
   status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
   scheduled_date?: string;
+  scheduled_time?: string;
   estimated_duration?: number; // in minutes
   estimated_price_min?: number; // in øre
   estimated_price_max?: number; // in øre
@@ -55,6 +56,7 @@ export const useBookings = () => {
     property_id: string;
     service_type: string;
     scheduled_date?: string;
+    scheduled_time?: string;
     estimated_duration?: number;
     estimated_price_min?: number;
     estimated_price_max?: number;

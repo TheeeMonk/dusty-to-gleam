@@ -18,6 +18,7 @@ export type Database = {
           id: string
           property_id: string
           scheduled_date: string | null
+          scheduled_time: string | null
           service_type: string
           special_instructions: string | null
           status: string
@@ -32,6 +33,7 @@ export type Database = {
           id?: string
           property_id: string
           scheduled_date?: string | null
+          scheduled_time?: string | null
           service_type: string
           special_instructions?: string | null
           status?: string
@@ -46,6 +48,7 @@ export type Database = {
           id?: string
           property_id?: string
           scheduled_date?: string | null
+          scheduled_time?: string | null
           service_type?: string
           special_instructions?: string | null
           status?: string

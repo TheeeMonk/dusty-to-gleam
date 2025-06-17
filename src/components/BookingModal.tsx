@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
 import { 
   Dialog,
   DialogContent,
@@ -10,16 +11,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import PropertyForm from '@/components/PropertyForm';
 import { useBookings } from '@/hooks/useBookings';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { nb } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { 
   Home, 
   Truck, 
   Eye, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   Building,
   MapPin,
   Clock,
@@ -59,7 +68,9 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [recurringOption, setRecurringOption] = useState<RecurringOption>('none');
-  const [step, setStep] = useState<'service' | 'property' | 'recurring' | 'confirmation'>('service');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [step, setStep] = useState<'service' | 'property' | 'recurring' | 'datetime' | 'confirmation'>('service');
   const [isPropertyFormOpen, setIsPropertyFormOpen] = useState(false);
 
   const services = [
@@ -100,7 +111,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
       id: 'seasonal',
       name: 'Sesongvask',
       description: 'Grundig vask 2-4 ganger per år',
-      icon: Calendar,
+      icon: CalendarIcon,
       price: '1000-1800 kr',
       duration: '3-5 timer',
       estimatedDuration: 240,
@@ -125,7 +136,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
       id: 'none' as RecurringOption,
       name: 'Engangs bestilling',
       description: 'Kun én vask',
-      icon: Calendar
+      icon: CalendarIcon
     },
     {
       id: 'weekly' as RecurringOption,
@@ -150,6 +161,12 @@ const BookingModal: React.FC<BookingModalProps> = ({
     }
   ];
 
+  const timeSlots = [
+    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
+    '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
+    '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
+  ];
+
   const handleServiceSelect = (serviceId: string) => {
     setSelectedService(serviceId);
     setStep('property');
@@ -161,6 +178,14 @@ const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleRecurringSelect = () => {
+    setStep('datetime');
+  };
+
+  const handleDateTimeSelect = () => {
+    if (!selectedDate || !selectedTime) {
+      toast.error('Vennligst velg både dato og klokkeslett');
+      return;
+    }
     setStep('confirmation');
   };
 
@@ -188,8 +213,8 @@ const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleBooking = async () => {
-    if (!selectedService || !selectedProperty) {
-      toast.error('Vennligst velg tjeneste og eiendom');
+    if (!selectedService || !selectedProperty || !selectedDate || !selectedTime) {
+      toast.error('Vennligst fullfør alle steg før bestilling');
       return;
     }
 
@@ -215,6 +240,8 @@ const BookingModal: React.FC<BookingModalProps> = ({
       const booking = await createBooking({
         property_id: selectedProperty,
         service_type: selectedServiceData.name,
+        scheduled_date: selectedDate.toISOString(),
+        scheduled_time: selectedTime,
         estimated_duration: selectedServiceData.estimatedDuration,
         estimated_price_min: priceMin,
         estimated_price_max: priceMax,
@@ -232,6 +259,8 @@ const BookingModal: React.FC<BookingModalProps> = ({
         setSelectedService(null);
         setSelectedProperty(null);
         setRecurringOption('none');
+        setSelectedDate(undefined);
+        setSelectedTime('');
       } else {
         toast.error('Kunne ikke opprette bestilling');
       }
@@ -245,6 +274,13 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const selectedPropertyData = properties.find(p => p.id === selectedProperty);
   const selectedRecurringData = recurringOptions.find(o => o.id === recurringOption);
 
+  // Filter out past dates
+  const isDateDisabled = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date < today;
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -257,6 +293,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
               {step === 'service' && 'Velg type rengjøring'}
               {step === 'property' && 'Velg eiendom'}
               {step === 'recurring' && 'Velg hyppighet'}
+              {step === 'datetime' && 'Velg dato og tid'}
               {step === 'confirmation' && 'Bekreft bestilling'}
             </DialogDescription>
           </DialogHeader>
@@ -425,7 +462,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
             </div>
           )}
 
-          {step === 'confirmation' && (
+          {step === 'datetime' && (
             <div className="space-y-6">
               <Button 
                 variant="outline" 
@@ -433,6 +470,75 @@ const BookingModal: React.FC<BookingModalProps> = ({
                 className="mb-4"
               >
                 ← Tilbake til hyppighet
+              </Button>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Date Selection */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-center">Velg dato</h3>
+                  <div className="flex justify-center">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      disabled={isDateDisabled}
+                      locale={nb}
+                      className="rounded-md border shadow"
+                    />
+                  </div>
+                  {selectedDate && (
+                    <p className="text-center text-sm text-muted-foreground">
+                      Valgt: {format(selectedDate, 'EEEE, d. MMMM yyyy', { locale: nb })}
+                    </p>
+                  )}
+                </div>
+
+                {/* Time Selection */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-center">Velg klokkeslett</h3>
+                  <div className="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto">
+                    {timeSlots.map((time) => (
+                      <Button
+                        key={time}
+                        variant={selectedTime === time ? "default" : "outline"}
+                        onClick={() => setSelectedTime(time)}
+                        className={cn(
+                          "text-sm",
+                          selectedTime === time && "bg-sky-500 hover:bg-sky-600"
+                        )}
+                      >
+                        {time}
+                      </Button>
+                    ))}
+                  </div>
+                  {selectedTime && (
+                    <p className="text-center text-sm text-muted-foreground">
+                      Valgt klokkeslett: {selectedTime}
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex justify-center pt-6">
+                <Button 
+                  onClick={handleDateTimeSelect}
+                  disabled={!selectedDate || !selectedTime}
+                  className="px-8 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700"
+                >
+                  Fortsett til bekreftelse
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 'confirmation' && (
+            <div className="space-y-6">
+              <Button 
+                variant="outline" 
+                onClick={() => setStep('datetime')}
+                className="mb-4"
+              >
+                ← Tilbake til dato og tid
               </Button>
               
               <Card className="wow-card animate-pulse-glow">
@@ -445,7 +551,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div className="space-y-4">
                       <h3 className="font-semibold text-lg">Valgt tjeneste</h3>
                       {selectedServiceData && (
@@ -500,6 +606,25 @@ const BookingModal: React.FC<BookingModalProps> = ({
                           )}
                         </div>
                       )}
+                    </div>
+
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-lg">Dato og tid</h3>
+                      <div className="p-4 bg-sky-50 rounded-lg">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <CalendarIcon className="h-5 w-5 text-sky-600" />
+                          <span className="font-medium">Avtalt tid</span>
+                        </div>
+                        {selectedDate && (
+                          <p className="text-sm text-muted-foreground mb-1">
+                            {format(selectedDate, 'EEEE, d. MMMM yyyy', { locale: nb })}
+                          </p>
+                        )}
+                        <div className="flex items-center space-x-1">
+                          <Clock className="h-4 w-4 text-sky-600" />
+                          <span className="text-sm font-medium">{selectedTime}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
