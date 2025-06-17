@@ -100,6 +100,39 @@ export const useEmployeeBookings = () => {
     }
   };
 
+  const confirmBooking = async (bookingId: string) => {
+    try {
+      const now = new Date().toISOString();
+      
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          status: 'confirmed',
+          assigned_employee_id: user?.id,
+          approved_at: now,
+          approved_by: user?.id,
+          updated_at: now
+        })
+        .eq('id', bookingId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Booking bekreftet',
+        description: 'Bookingen er bekreftet og tildelt deg.',
+      });
+
+      await fetchBookings();
+    } catch (err) {
+      console.error('Error confirming booking:', err);
+      toast({
+        title: 'Feil',
+        description: 'Kunne ikke bekrefte bookingen.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const startJob = async (bookingId: string) => {
     try {
       const now = new Date().toISOString();
@@ -183,6 +216,7 @@ export const useEmployeeBookings = () => {
     bookings,
     loading,
     error,
+    confirmBooking,
     startJob,
     completeJob,
     refetch: fetchBookings

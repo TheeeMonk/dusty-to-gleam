@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import {
   CalendarDays,
   Timer,
   FileText,
-  Phone
+  CheckCircle
 } from 'lucide-react';
 import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -24,7 +25,7 @@ import { nb } from 'date-fns/locale';
 const EmployeeDashboard: React.FC = () => {
   const { t } = useLanguage();
   const { toast } = useToast();
-  const { bookings, loading, startJob, completeJob } = useEmployeeBookings();
+  const { bookings, loading, confirmBooking, startJob, completeJob } = useEmployeeBookings();
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const { uploadImage, uploading } = useJobImages(selectedBookingId || undefined);
 
@@ -60,6 +61,10 @@ const EmployeeDashboard: React.FC = () => {
 
   console.log('Todays jobs:', todaysJobs);
   console.log('Upcoming jobs:', upcomingJobs);
+
+  const handleConfirmBooking = async (jobId: string) => {
+    await confirmBooking(jobId);
+  };
 
   const handleStartJob = async (jobId: string) => {
     await startJob(jobId);
@@ -97,7 +102,7 @@ const EmployeeDashboard: React.FC = () => {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'pending': return 'Venter';
+      case 'pending': return 'Avventer bekreftelse';
       case 'confirmed': return 'Bekreftet';
       case 'in_progress': return 'Pågår';
       case 'completed': return 'Fullført';
@@ -223,7 +228,17 @@ const EmployeeDashboard: React.FC = () => {
                       </div>
 
                       <div className="flex flex-col space-y-2">
-                        {(job.status === 'confirmed' || job.status === 'pending') && (
+                        {job.status === 'pending' && (
+                          <Button 
+                            onClick={() => handleConfirmBooking(job.id)}
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Bekreft booking
+                          </Button>
+                        )}
+
+                        {(job.status === 'confirmed') && (
                           <Button 
                             onClick={() => handleStartJob(job.id)}
                             className="bg-gradient-to-r from-dusty-500 to-dirty-500 hover:from-dusty-600 hover:to-dirty-600"

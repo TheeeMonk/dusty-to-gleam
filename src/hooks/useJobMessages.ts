@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 export interface JobMessage {
   id: string;
@@ -9,13 +10,14 @@ export interface JobMessage {
   sender_id: string;
   message: string;
   message_type: 'text' | 'image' | 'status_update';
-  created_at: string;
   read_by_customer: boolean;
   read_by_employee: boolean;
+  created_at: string;
 }
 
 export const useJobMessages = (bookingId?: string) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<JobMessage[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -31,7 +33,14 @@ export const useJobMessages = (bookingId?: string) => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      
+      // Type assertion to ensure proper typing
+      const typedMessages = (data || []).map(msg => ({
+        ...msg,
+        message_type: msg.message_type as 'text' | 'image' | 'status_update'
+      }));
+      
+      setMessages(typedMessages);
     } catch (err) {
       console.error('Error fetching job messages:', err);
     } finally {
@@ -48,8 +57,10 @@ export const useJobMessages = (bookingId?: string) => {
         .insert([{
           booking_id: bookingId,
           sender_id: user.id,
-          message,
-          message_type: messageType
+          message: message,
+          message_type: messageType,
+          read_by_customer: false,
+          read_by_employee: false
         }])
         .select()
         .single();
@@ -60,6 +71,11 @@ export const useJobMessages = (bookingId?: string) => {
       return data;
     } catch (err) {
       console.error('Error sending message:', err);
+      toast({
+        title: 'Feil',
+        description: 'Kunne ikke sende meldingen.',
+        variant: 'destructive'
+      });
       return null;
     }
   };
