@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { ErrorHandler } from '@/utils/errorHandler';
+import { logger } from '@/utils/logger';
 
 export interface Property {
   id: string;
@@ -31,21 +33,31 @@ export const useProperties = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchProperties = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      setError(null);
+      
+      const { data, error: supabaseError } = await supabase
         .from('properties')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      setProperties(data || []);
+      if (supabaseError) {
+        const appError = ErrorHandler.handle(supabaseError, { userId: user.id });
+        setError(ErrorHandler.getDisplayMessage(appError));
+        logger.error('Error fetching properties', { userId: user.id });
+      } else {
+        setProperties(data || []);
+        logger.info('Properties fetched successfully');
+      }
     } catch (err) {
-      console.error('Error fetching properties:', err);
-      setError(err instanceof Error ? err.message : 'En feil oppstod');
+      const appError = ErrorHandler.handle(err, { userId: user.id });
+      setError(ErrorHandler.getDisplayMessage(appError));
     } finally {
       setLoading(false);
     }
@@ -55,7 +67,7 @@ export const useProperties = () => {
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase
+      const { data, error: supabaseError } = await supabase
         .from('properties')
         .insert([{
           ...propertyData,
@@ -64,13 +76,18 @@ export const useProperties = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (supabaseError) {
+        const appError = ErrorHandler.handle(supabaseError, { userId: user.id });
+        setError(ErrorHandler.getDisplayMessage(appError));
+        return null;
+      }
 
       setProperties(prev => [data, ...prev]);
+      logger.info('Property added successfully');
       return data;
     } catch (err) {
-      console.error('Error adding property:', err);
-      setError(err instanceof Error ? err.message : 'En feil oppstod');
+      const appError = ErrorHandler.handle(err, { userId: user.id });
+      setError(ErrorHandler.getDisplayMessage(appError));
       return null;
     }
   };
@@ -79,7 +96,7 @@ export const useProperties = () => {
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase
+      const { data, error: supabaseError } = await supabase
         .from('properties')
         .update({
           ...propertyData,
@@ -89,17 +106,22 @@ export const useProperties = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (supabaseError) {
+        const appError = ErrorHandler.handle(supabaseError, { userId: user.id });
+        setError(ErrorHandler.getDisplayMessage(appError));
+        return null;
+      }
 
       setProperties(prev => 
         prev.map(property => 
           property.id === id ? data : property
         )
       );
+      logger.info('Property updated successfully');
       return data;
     } catch (err) {
-      console.error('Error updating property:', err);
-      setError(err instanceof Error ? err.message : 'En feil oppstod');
+      const appError = ErrorHandler.handle(err, { userId: user.id });
+      setError(ErrorHandler.getDisplayMessage(appError));
       return null;
     }
   };
@@ -108,18 +130,23 @@ export const useProperties = () => {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
+      const { error: supabaseError } = await supabase
         .from('properties')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (supabaseError) {
+        const appError = ErrorHandler.handle(supabaseError, { userId: user.id });
+        setError(ErrorHandler.getDisplayMessage(appError));
+        return false;
+      }
 
       setProperties(prev => prev.filter(property => property.id !== id));
+      logger.info('Property deleted successfully');
       return true;
     } catch (err) {
-      console.error('Error deleting property:', err);
-      setError(err instanceof Error ? err.message : 'En feil oppstod');
+      const appError = ErrorHandler.handle(err, { userId: user.id });
+      setError(ErrorHandler.getDisplayMessage(appError));
       return false;
     }
   };
