@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import IntroScreen from '@/components/IntroScreen';
 import UserTypeSelection from '@/components/UserTypeSelection';
 import RegistrationForm, { RegistrationData } from '@/components/RegistrationForm';
@@ -10,6 +11,7 @@ import EmployeeDashboard from '@/components/EmployeeDashboard';
 type AppState = 'intro' | 'userType' | 'register' | 'customerDashboard' | 'employeeDashboard';
 
 const Index = () => {
+  const { user, loading } = useAuth();
   console.log('Index component is rendering');
   
   const [appState, setAppState] = useState<AppState>('intro');
@@ -18,6 +20,15 @@ const Index = () => {
 
   console.log('Current app state:', appState);
   console.log('Current user type:', userType);
+  console.log('User authenticated:', !!user);
+
+  useEffect(() => {
+    // If user is authenticated, go directly to customer dashboard
+    if (user && !loading) {
+      console.log('User is authenticated, going to customer dashboard');
+      setAppState('customerDashboard');
+    }
+  }, [user, loading]);
 
   const handleContinueFromIntro = () => {
     console.log('Continuing from intro screen');
@@ -34,8 +45,6 @@ const Index = () => {
       setAppState('register');
     } else {
       console.log('Going to employee dashboard');
-      // For demo purposes, go directly to employee dashboard
-      // In real app, this would require authentication
       setAppState('employeeDashboard');
     }
     
@@ -47,34 +56,46 @@ const Index = () => {
     setRegistrationData(data);
     setAppState('customerDashboard');
     
-    // Here you would typically save the data to Supabase
     console.log('Registration data to save to Supabase:', data);
   };
 
   const mockCustomerData = {
-    name: registrationData?.fullName || 'Anna Hansen',
+    name: user?.email || registrationData?.fullName || 'Anna Hansen',
     loyaltyPoints: 23
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mx-auto mb-4"></div>
+          <p className="text-sky-600">Laster...</p>
+        </div>
+      </div>
+    );
+  }
 
   console.log('About to render component for state:', appState);
 
   return (
     <LanguageProvider>
       <div className="w-full">
-        {appState === 'intro' && (
+        {/* If user is authenticated, show customer dashboard */}
+        {user && appState === 'customerDashboard' && (
+          <CustomerDashboard customerData={mockCustomerData} />
+        )}
+        
+        {/* If no user, show the flow */}
+        {!user && appState === 'intro' && (
           <IntroScreen onContinue={handleContinueFromIntro} />
         )}
         
-        {appState === 'userType' && (
+        {!user && appState === 'userType' && (
           <UserTypeSelection onSelectUserType={handleUserTypeSelection} />
         )}
         
-        {appState === 'register' && (
+        {!user && appState === 'register' && (
           <RegistrationForm onComplete={handleRegistrationComplete} />
-        )}
-        
-        {appState === 'customerDashboard' && (
-          <CustomerDashboard customerData={mockCustomerData} />
         )}
         
         {appState === 'employeeDashboard' && (

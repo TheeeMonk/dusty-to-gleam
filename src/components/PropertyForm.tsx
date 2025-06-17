@@ -21,24 +21,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Building, Save, X } from 'lucide-react';
-
-interface Property {
-  id: string;
-  name: string;
-  address: string;
-  type: string;
-  rooms?: number;
-  squareMeters?: number;
-  windows?: number;
-  hasPets?: boolean;
-  notes?: string;
-}
+import { Property } from '@/hooks/useProperties';
 
 interface PropertyFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (property: Omit<Property, 'id'>) => void;
-  onUpdate?: (property: Property) => void;
+  onSave: (property: Omit<Property, 'id' | 'created_at' | 'updated_at'>) => Promise<Property | null>;
+  onUpdate?: (id: string, property: Partial<Property>) => Promise<Property | null>;
   editingProperty?: Property | null;
 }
 
@@ -54,11 +43,12 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
     address: '',
     type: '',
     rooms: '',
-    squareMeters: '',
+    square_meters: '',
     windows: '',
-    hasPets: false,
+    has_pets: false,
     notes: ''
   });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (editingProperty) {
@@ -67,9 +57,9 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
         address: editingProperty.address,
         type: editingProperty.type,
         rooms: editingProperty.rooms?.toString() || '',
-        squareMeters: editingProperty.squareMeters?.toString() || '',
+        square_meters: editingProperty.square_meters?.toString() || '',
         windows: editingProperty.windows?.toString() || '',
-        hasPets: editingProperty.hasPets || false,
+        has_pets: editingProperty.has_pets || false,
         notes: editingProperty.notes || ''
       });
     } else {
@@ -78,9 +68,9 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
         address: '',
         type: '',
         rooms: '',
-        squareMeters: '',
+        square_meters: '',
         windows: '',
-        hasPets: false,
+        has_pets: false,
         notes: ''
       });
     }
@@ -104,12 +94,14 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.address || !formData.type) {
       return;
     }
+
+    setSaving(true);
 
     const selectedType = propertyTypes.find(type => type.value === formData.type);
     
@@ -118,22 +110,24 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
       address: formData.address,
       type: selectedType?.label || formData.type,
       rooms: formData.rooms ? parseInt(formData.rooms) : undefined,
-      squareMeters: formData.squareMeters ? parseInt(formData.squareMeters) : undefined,
+      square_meters: formData.square_meters ? parseInt(formData.square_meters) : undefined,
       windows: formData.windows ? parseInt(formData.windows) : undefined,
-      hasPets: formData.hasPets,
+      has_pets: formData.has_pets,
       notes: formData.notes || undefined
     };
 
-    if (editingProperty && onUpdate) {
-      onUpdate({
-        ...propertyData,
-        id: editingProperty.id
-      });
-    } else {
-      onSave(propertyData);
+    try {
+      if (editingProperty && onUpdate) {
+        await onUpdate(editingProperty.id, propertyData);
+      } else {
+        await onSave(propertyData);
+      }
+      handleClose();
+    } catch (error) {
+      console.error('Error saving property:', error);
+    } finally {
+      setSaving(false);
     }
-
-    handleClose();
   };
 
   const handleClose = () => {
@@ -142,9 +136,9 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
       address: '',
       type: '',
       rooms: '',
-      squareMeters: '',
+      square_meters: '',
       windows: '',
-      hasPets: false,
+      has_pets: false,
       notes: ''
     });
     onClose();
@@ -235,15 +229,15 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="squareMeters" className="text-sm font-medium">
+                  <Label htmlFor="square_meters" className="text-sm font-medium">
                     Kvadratmeter
                   </Label>
                   <Input
-                    id="squareMeters"
+                    id="square_meters"
                     type="number"
                     placeholder="F.eks. 120"
-                    value={formData.squareMeters}
-                    onChange={(e) => handleInputChange('squareMeters', e.target.value)}
+                    value={formData.square_meters}
+                    onChange={(e) => handleInputChange('square_meters', e.target.value)}
                     className="border-sky-200 focus:border-sky-400"
                     min="1"
                   />
@@ -268,11 +262,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
               <div className="space-y-4">
                 <div className="flex items-center space-x-3">
                   <Switch
-                    id="hasPets"
-                    checked={formData.hasPets}
-                    onCheckedChange={(checked) => handleInputChange('hasPets', checked)}
+                    id="has_pets"
+                    checked={formData.has_pets}
+                    onCheckedChange={(checked) => handleInputChange('has_pets', checked)}
                   />
-                  <Label htmlFor="hasPets" className="text-sm font-medium">
+                  <Label htmlFor="has_pets" className="text-sm font-medium">
                     Har du kjæledyr i boligen?
                   </Label>
                 </div>
@@ -298,6 +292,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
                   variant="outline" 
                   onClick={handleClose}
                   className="px-6"
+                  disabled={saving}
                 >
                   <X className="h-4 w-4 mr-2" />
                   Avbryt
@@ -305,9 +300,10 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
                 <Button 
                   type="submit"
                   className="px-6 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700"
+                  disabled={saving}
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {isEditing ? 'Oppdater eiendom' : 'Lagre eiendom'}
+                  {saving ? 'Lagrer...' : (isEditing ? 'Oppdater eiendom' : 'Lagre eiendom')}
                 </Button>
               </div>
             </form>

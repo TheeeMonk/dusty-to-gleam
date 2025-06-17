@@ -1,8 +1,11 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProperties } from '@/hooks/useProperties';
 import BottomNavigation from '@/components/BottomNavigation';
 import BookingModal from '@/components/BookingModal';
 import PropertyForm from '@/components/PropertyForm';
@@ -20,7 +23,8 @@ import {
   User,
   Building,
   Edit,
-  PawPrint
+  PawPrint,
+  LogOut
 } from 'lucide-react';
 
 interface Cleaning {
@@ -34,18 +38,6 @@ interface Cleaning {
   afterImage?: string;
 }
 
-interface Property {
-  id: string;
-  name: string;
-  address: string;
-  type: string;
-  rooms?: number;
-  squareMeters?: number;
-  windows?: number;
-  hasPets?: boolean;
-  notes?: string;
-}
-
 interface CustomerDashboardProps {
   customerData: {
     name: string;
@@ -55,10 +47,12 @@ interface CustomerDashboardProps {
 
 const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) => {
   const { t } = useLanguage();
+  const { user, signOut } = useAuth();
+  const { properties, loading, addProperty, updateProperty } = useProperties();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isPropertyFormOpen, setIsPropertyFormOpen] = useState(false);
-  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [editingProperty, setEditingProperty] = useState<any>(null);
   
   const [nextCleaning] = useState<Cleaning | null>({
     id: '1',
@@ -68,30 +62,6 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
     address: 'Hjemme',
     status: 'scheduled'
   });
-
-  const [properties, setProperties] = useState<Property[]>([
-    {
-      id: '1',
-      name: 'Hovedbolig',
-      address: 'Dalskroken 19 B, 1405 Langhus',
-      type: 'Enebolig',
-      rooms: 5,
-      squareMeters: 150,
-      windows: 12,
-      hasPets: true,
-      notes: 'Hund som kan være nervøs for fremmede'
-    },
-    {
-      id: '2',
-      name: 'Hytte',
-      address: 'Fjellveien 15, 2600 Lillehammer',
-      type: 'Fritidsbolig',
-      rooms: 3,
-      squareMeters: 80,
-      windows: 8,
-      hasPets: false
-    }
-  ]);
 
   const [previousCleanings] = useState<Cleaning[]>([
     {
@@ -122,27 +92,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
   const loyaltyProgress = (customerData.loyaltyPoints % 10) * 10;
   const freeCleaningsEarned = Math.floor(customerData.loyaltyPoints / 10);
 
-  const handleAddProperty = (newPropertyData: Omit<Property, 'id'>) => {
-    const newProperty: Property = {
-      ...newPropertyData,
-      id: String(properties.length + 1)
-    };
-    
-    setProperties(prevProperties => [...prevProperties, newProperty]);
-    console.log('New property added:', newProperty);
-  };
-
-  const handleUpdateProperty = (updatedProperty: Property) => {
-    setProperties(prevProperties => 
-      prevProperties.map(property => 
-        property.id === updatedProperty.id ? updatedProperty : property
-      )
-    );
-    setEditingProperty(null);
-    console.log('Property updated:', updatedProperty);
-  };
-
-  const handleEditProperty = (property: Property) => {
+  const handleEditProperty = (property: any) => {
     setEditingProperty(property);
     setIsPropertyFormOpen(true);
   };
@@ -152,10 +102,23 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
     setEditingProperty(null);
   };
 
+  const handleLogout = async () => {
+    await signOut();
+  };
+
   const renderDashboard = () => (
     <div className="space-y-8 pb-24">
-      {/* Header with enhanced styling */}
-      <div className="text-center">
+      {/* Header with logout */}
+      <div className="text-center relative">
+        <Button
+          onClick={handleLogout}
+          variant="outline"
+          size="sm"
+          className="absolute top-0 right-0"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logg ut
+        </Button>
         <div className="flex justify-center mb-6">
           <div className="relative">
             <Sparkles className="h-20 w-20 text-sky-400 animate-float" />
@@ -166,11 +129,11 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
           Velkommen tilbake!
         </h1>
         <p className="text-xl text-sky-600 font-medium animate-fade-in">
-          {customerData.name} ✨
+          {user?.email} ✨
         </p>
       </div>
 
-      {/* Next Cleaning Card with enhanced design */}
+      {/* Next Cleaning Card */}
       <Card className="wow-card card-hover animate-fade-in">
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center space-x-3 text-2xl">
@@ -237,7 +200,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Enhanced Loyalty Card */}
+        {/* Loyalty Card */}
         <Card className="wow-card card-hover animate-fade-in">
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center space-x-2 text-xl">
@@ -277,7 +240,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
           </CardContent>
         </Card>
 
-        {/* Previous Cleanings with enhanced design */}
+        {/* Previous Cleanings */}
         <Card className="wow-card card-hover lg:col-span-2 animate-fade-in">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -369,8 +332,12 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
       
       <Card className="wow-card">
         <CardContent className="p-8 text-center">
-          <h2 className="text-2xl font-semibold mb-4">{customerData.name}</h2>
-          <p className="text-muted-foreground">Profilinnstillinger kommer snart...</p>
+          <h2 className="text-2xl font-semibold mb-4">{user?.email}</h2>
+          <p className="text-muted-foreground mb-6">Profilinnstillinger kommer snart...</p>
+          <Button onClick={handleLogout} variant="outline">
+            <LogOut className="h-4 w-4 mr-2" />
+            Logg ut
+          </Button>
         </CardContent>
       </Card>
     </div>
@@ -388,91 +355,98 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
         <p className="text-sky-600">Administrer dine eiendommer</p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {properties.map((property) => (
-          <Card key={property.id} className="wow-card card-hover relative group">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start space-x-4 flex-1">
-                  <div className="p-4 bg-sky-100 rounded-full">
-                    <Building className="h-8 w-8 text-sky-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-xl mb-2">{property.name}</h3>
-                    <div className="flex items-center space-x-2 text-muted-foreground mb-3">
-                      <MapPin className="h-4 w-4" />
-                      <span>{property.address}</span>
+      {loading ? (
+        <div className="text-center py-12">
+          <Sparkles className="h-12 w-12 text-sky-500 animate-spin mx-auto mb-4" />
+          <p className="text-sky-600">Laster eiendommer...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {properties.map((property) => (
+            <Card key={property.id} className="wow-card card-hover relative group">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start space-x-4 flex-1">
+                    <div className="p-4 bg-sky-100 rounded-full">
+                      <Building className="h-8 w-8 text-sky-600" />
                     </div>
-                    <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
-                      {property.type}
-                    </Badge>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-xl mb-2">{property.name}</h3>
+                      <div className="flex items-center space-x-2 text-muted-foreground mb-3">
+                        <MapPin className="h-4 w-4" />
+                        <span>{property.address}</span>
+                      </div>
+                      <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
+                        {property.type}
+                      </Badge>
+                    </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditProperty(property)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEditProperty(property)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
+                
+                {/* Property details */}
+                <div className="space-y-3 pt-4 border-t border-sky-100">
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    {property.rooms && (
+                      <div className="text-center">
+                        <div className="font-medium text-sky-600">{property.rooms}</div>
+                        <div className="text-muted-foreground">Rom</div>
+                      </div>
+                    )}
+                    {property.square_meters && (
+                      <div className="text-center">
+                        <div className="font-medium text-sky-600">{property.square_meters}m²</div>
+                        <div className="text-muted-foreground">Kvm</div>
+                      </div>
+                    )}
+                    {property.windows && (
+                      <div className="text-center">
+                        <div className="font-medium text-sky-600">{property.windows}</div>
+                        <div className="text-muted-foreground">Vinduer</div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {property.has_pets && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <PawPrint className="h-4 w-4 text-sky-500" />
+                      <span className="text-muted-foreground">Har kjæledyr</span>
+                    </div>
+                  )}
+                  
+                  {property.notes && (
+                    <div className="text-sm text-muted-foreground mt-2">
+                      <strong>Merknader:</strong> {property.notes}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          
+          <Card 
+            className="wow-card card-hover border-dashed border-sky-300 cursor-pointer"
+            onClick={() => setIsPropertyFormOpen(true)}
+          >
+            <CardContent className="p-6 text-center space-y-4">
+              <div className="p-4 bg-sky-50 rounded-full w-fit mx-auto">
+                <Plus className="h-8 w-8 text-sky-500" />
               </div>
-              
-              {/* Property details */}
-              <div className="space-y-3 pt-4 border-t border-sky-100">
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  {property.rooms && (
-                    <div className="text-center">
-                      <div className="font-medium text-sky-600">{property.rooms}</div>
-                      <div className="text-muted-foreground">Rom</div>
-                    </div>
-                  )}
-                  {property.squareMeters && (
-                    <div className="text-center">
-                      <div className="font-medium text-sky-600">{property.squareMeters}m²</div>
-                      <div className="text-muted-foreground">Kvm</div>
-                    </div>
-                  )}
-                  {property.windows && (
-                    <div className="text-center">
-                      <div className="font-medium text-sky-600">{property.windows}</div>
-                      <div className="text-muted-foreground">Vinduer</div>
-                    </div>
-                  )}
-                </div>
-                
-                {property.hasPets && (
-                  <div className="flex items-center space-x-2 text-sm">
-                    <PawPrint className="h-4 w-4 text-sky-500" />
-                    <span className="text-muted-foreground">Har kjæledyr</span>
-                  </div>
-                )}
-                
-                {property.notes && (
-                  <div className="text-sm text-muted-foreground mt-2">
-                    <strong>Merknader:</strong> {property.notes}
-                  </div>
-                )}
+              <div>
+                <h3 className="font-semibold text-lg text-sky-700">Legg til ny bolig</h3>
+                <p className="text-muted-foreground text-sm">Registrer en ny eiendom</p>
               </div>
             </CardContent>
           </Card>
-        ))}
-        
-        <Card 
-          className="wow-card card-hover border-dashed border-sky-300 cursor-pointer"
-          onClick={() => setIsPropertyFormOpen(true)}
-        >
-          <CardContent className="p-6 text-center space-y-4">
-            <div className="p-4 bg-sky-50 rounded-full w-fit mx-auto">
-              <Plus className="h-8 w-8 text-sky-500" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg text-sky-700">Legg til ny bolig</h3>
-              <p className="text-muted-foreground text-sm">Registrer en ny eiendom</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        </div>
+      )}
     </div>
   );
 
@@ -494,14 +468,14 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}
         properties={properties}
-        onAddProperty={handleAddProperty}
+        onAddProperty={addProperty}
       />
       
       <PropertyForm 
         isOpen={isPropertyFormOpen}
         onClose={handleClosePropertyForm}
-        onSave={handleAddProperty}
-        onUpdate={handleUpdateProperty}
+        onSave={addProperty}
+        onUpdate={updateProperty}
         editingProperty={editingProperty}
       />
     </div>
