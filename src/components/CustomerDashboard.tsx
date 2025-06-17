@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNavigation from '@/components/BottomNavigation';
 import BookingModal from '@/components/BookingModal';
+import PropertyForm from '@/components/PropertyForm';
 import { 
   Calendar, 
   Clock, 
@@ -49,6 +50,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [isPropertyFormOpen, setIsPropertyFormOpen] = useState(false);
   
   const [nextCleaning] = useState<Cleaning | null>({
     id: '1',
@@ -59,7 +61,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
     status: 'scheduled'
   });
 
-  const [properties] = useState<Property[]>([
+  const [properties, setProperties] = useState<Property[]>([
     {
       id: '1',
       name: 'Hovedbolig',
@@ -102,6 +104,16 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
 
   const loyaltyProgress = (customerData.loyaltyPoints % 10) * 10;
   const freeCleaningsEarned = Math.floor(customerData.loyaltyPoints / 10);
+
+  const handleAddProperty = (newPropertyData: Omit<Property, 'id'>) => {
+    const newProperty: Property = {
+      ...newPropertyData,
+      id: String(properties.length + 1)
+    };
+    
+    setProperties(prevProperties => [...prevProperties, newProperty]);
+    console.log('New property added:', newProperty);
+  };
 
   const renderDashboard = () => (
     <div className="space-y-8 pb-24">
@@ -362,7 +374,10 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
           </Card>
         ))}
         
-        <Card className="wow-card card-hover border-dashed border-sky-300 cursor-pointer">
+        <Card 
+          className="wow-card card-hover border-dashed border-sky-300 cursor-pointer"
+          onClick={() => setIsPropertyFormOpen(true)}
+        >
           <CardContent className="p-6 text-center space-y-4">
             <div className="p-4 bg-sky-50 rounded-full w-fit mx-auto">
               <Plus className="h-8 w-8 text-sky-500" />
@@ -395,6 +410,13 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData }) =
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}
         properties={properties}
+        onAddProperty={handleAddProperty}
+      />
+      
+      <PropertyForm 
+        isOpen={isPropertyFormOpen}
+        onClose={() => setIsPropertyFormOpen(false)}
+        onSave={handleAddProperty}
       />
     </div>
   );
