@@ -12,6 +12,19 @@ interface UserTypeSelectionProps {
 const UserTypeSelection: React.FC<UserTypeSelectionProps> = ({ onSelectUserType }) => {
   const { t } = useLanguage();
 
+  const handleCustomerClick = () => {
+    console.log('Customer button clicked!');
+    onSelectUserType('customer');
+  };
+
+  const handleEmployeeClick = () => {
+    console.log('Employee button clicked!');
+    onSelectUserType('employee');
+  };
+
+  console.log('UserTypeSelection component is rendering');
+  console.log('onSelectUserType function:', onSelectUserType);
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
@@ -52,7 +65,7 @@ const UserTypeSelection: React.FC<UserTypeSelectionProps> = ({ onSelectUserType 
               </div>
 
               <Button 
-                onClick={() => onSelectUserType('customer')}
+                onClick={handleCustomerClick}
                 className="w-full bg-dusty-500 hover:bg-dusty-600"
                 size="lg"
               >
@@ -88,7 +101,7 @@ const UserTypeSelection: React.FC<UserTypeSelectionProps> = ({ onSelectUserType 
               </div>
 
               <Button 
-                onClick={() => onSelectUserType('employee')}
+                onClick={handleEmployeeClick}
                 className="w-full bg-dirty-500 hover:bg-dirty-600"
                 size="lg"
               >
