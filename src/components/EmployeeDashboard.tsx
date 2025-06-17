@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,10 @@ import {
   Timer,
   FileText,
   CheckCircle,
-  Eye
+  Eye,
+  Home,
+  Bath,
+  Bed
 } from 'lucide-react';
 import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -76,19 +80,54 @@ const EmployeeDashboard: React.FC = () => {
     try {
       await confirmBooking(jobId);
       console.log('Booking confirmed successfully');
+      toast({
+        title: 'Booking bekreftet',
+        description: 'Bookingen er nå bekreftet og tildelt deg.',
+      });
     } catch (error) {
       console.error('Error confirming booking:', error);
+      toast({
+        title: 'Feil',
+        description: 'Kunne ikke bekrefte bookingen. Prøv igjen.',
+        variant: 'destructive'
+      });
     }
   };
 
   const handleStartJob = async (jobId: string) => {
     console.log('Starting job:', jobId);
-    await startJob(jobId);
+    try {
+      await startJob(jobId);
+      toast({
+        title: 'Jobb startet',
+        description: 'Jobben er markert som påbegynt.',
+      });
+    } catch (error) {
+      console.error('Error starting job:', error);
+      toast({
+        title: 'Feil',
+        description: 'Kunne ikke starte jobben. Prøv igjen.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const handleFinishJob = async (jobId: string) => {
     console.log('Finishing job:', jobId);
-    await completeJob(jobId);
+    try {
+      await completeJob(jobId);
+      toast({
+        title: 'Jobb fullført',
+        description: 'Jobben er markert som fullført.',
+      });
+    } catch (error) {
+      console.error('Error completing job:', error);
+      toast({
+        title: 'Feil',
+        description: 'Kunne ikke fullføre jobben. Prøv igjen.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const handleImageUpload = async (jobId: string, type: 'before' | 'after') => {
@@ -101,7 +140,19 @@ const EmployeeDashboard: React.FC = () => {
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        await uploadImage(file, type);
+        try {
+          await uploadImage(file, type);
+          toast({
+            title: 'Bilde lastet opp',
+            description: `${type === 'before' ? 'Før' : 'Etter'}-bilde er lastet opp.`,
+          });
+        } catch (error) {
+          toast({
+            title: 'Feil',
+            description: 'Kunne ikke laste opp bildet.',
+            variant: 'destructive'
+          });
+        }
       }
     };
     input.click();
@@ -152,15 +203,6 @@ const EmployeeDashboard: React.FC = () => {
             God morgen! La oss gjøre hjemmene rene og fine ✨
           </p>
         </div>
-
-        {/* Debug info - Hidden on mobile */}
-        {!isMobile && (
-          <div className="mb-4 p-4 bg-gray-100 rounded text-xs">
-            <p>Debug: Totalt {bookings.length} bookinger funnet</p>
-            <p>Dagens oppdrag: {todaysJobs.length}</p>
-            <p>Status fordeling: {JSON.stringify(bookings.reduce((acc, b) => { acc[b.status] = (acc[b.status] || 0) + 1; return acc; }, {} as any))}</p>
-          </div>
-        )}
 
         {/* Stats Cards - Mobile responsive grid */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
@@ -222,7 +264,10 @@ const EmployeeDashboard: React.FC = () => {
                         
                         <div className="flex items-start space-x-2">
                           <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <span className="text-xs sm:text-sm break-words">{job.property_address}</span>
+                          <div className="flex-1">
+                            <span className="text-xs sm:text-sm break-words block">{job.property_address}</span>
+                            <span className="text-xs text-muted-foreground">{job.property_name}</span>
+                          </div>
                         </div>
                         
                         <div className="flex items-center space-x-2">
@@ -359,7 +404,10 @@ const EmployeeDashboard: React.FC = () => {
                       <div className="text-xs sm:text-sm text-muted-foreground">
                         {formatDate(job.scheduled_date!)} {formatTime(job.scheduled_time)} - {job.service_type}
                       </div>
-                      <div className="text-xs sm:text-sm text-muted-foreground break-words">{job.property_address}</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground break-words">
+                        {job.property_address}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{job.property_name}</div>
                     </div>
                     <Badge variant="outline" className="text-xs w-fit">{getStatusText(job.status)}</Badge>
                   </div>

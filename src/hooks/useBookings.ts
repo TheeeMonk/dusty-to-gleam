@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNotifications } from '@/hooks/useNotifications';
 
 export interface Booking {
   id: string;
@@ -12,31 +11,39 @@ export interface Booking {
   status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
   scheduled_date?: string;
   scheduled_time?: string;
-  estimated_duration?: number; // in minutes
-  estimated_price_min?: number; // in øre
-  estimated_price_max?: number; // in øre
+  estimated_duration?: number;
+  estimated_price_min?: number;
+  estimated_price_max?: number;
   special_instructions?: string;
   assigned_employee_id?: string;
-  approved_at?: string;
-  approved_by?: string;
+  start_time?: string;
+  end_time?: string;
+  actual_duration?: number;
+  notes?: string;
+  employee_notes?: string;
   created_at: string;
   updated_at: string;
+  approved_at?: string;
+  approved_by?: string;
 }
 
 export const useBookings = () => {
   const { user } = useAuth();
-  const { sendBookingConfirmation, scheduleReminder } = useNotifications();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchBookings = async () => {
-    if (!user) return;
-    
+    if (!user) {
+      setBookings([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      console.log('Fetching bookings for user:', user.id);
-      
+      setError(null);
+
       const { data, error } = await supabase
         .from('bookings')
         .select('*')
@@ -44,16 +51,9 @@ export const useBookings = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      console.log('Fetched bookings:', data);
-      
-      // Type assertion to ensure status is properly typed
-      const typedBookings = (data || []).map(booking => ({
-        ...booking,
-        status: booking.status as Booking['status']
-      }));
-      
-      setBookings(typedBookings);
+
+      console.log('Fetched bookings for user:', user.id, data);
+      setBookings(data || []);
     } catch (err) {
       console.error('Error fetching bookings:', err);
       setError(err instanceof Error ? err.message : 'En feil oppstod');
@@ -62,47 +62,24 @@ export const useBookings = () => {
     }
   };
 
-  const createBooking = async (bookingData: {
-    property_id: string;
-    service_type: string;
-    scheduled_date?: string;
-    scheduled_time?: string;
-    estimated_duration?: number;
-    estimated_price_min?: number;
-    estimated_price_max?: number;
-    special_instructions?: string;
-  }) => {
+  const createBooking = async (bookingData: Omit<Booking, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (!user) return null;
 
     try {
-      console.log('Creating booking with data:', bookingData);
-      
       const { data, error } = await supabase
         .from('bookings')
         .insert([{
           ...bookingData,
-          user_id: user.id,
-          status: 'pending'
+          user_id: user.id
         }])
         .select()
         .single();
 
       if (error) throw error;
 
-      console.log('Created booking:', data);
-
-      // Type assertion for the returned data
-      const typedBooking = {
-        ...data,
-        status: data.status as Booking['status']
-      };
-
-      setBookings(prev => [typedBooking, ...prev]);
-      
-      // Refetch to ensure we have the latest data
+      // Refresh bookings to get the latest state
       await fetchBookings();
-      
-      return typedBooking;
+      return data;
     } catch (err) {
       console.error('Error creating booking:', err);
       setError(err instanceof Error ? err.message : 'En feil oppstod');
@@ -121,54 +98,70 @@ export const useBookings = () => {
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
       if (error) throw error;
 
-      // Type assertion for the returned data
-      const typedBooking = {
-        ...data,
-        status: data.status as Booking['status']
-      };
-
-      setBookings(prev => 
-        prev.map(booking => 
-          booking.id === id ? typedBooking : booking
-        )
-      );
-
-      // Send notification if booking was confirmed
-      if (updates.status === 'confirmed' && typedBooking.status === 'confirmed') {
-        console.log('Booking confirmed, sending notification');
-        
-        // Send confirmation notification
-        sendBookingConfirmation({
-          customerName: user.email || 'Kunde',
-          serviceType: typedBooking.service_type,
-          scheduledDate: typedBooking.scheduled_date,
-          scheduledTime: typedBooking.scheduled_time
-        });
-
-        // Schedule reminder if date and time are available
-        if (typedBooking.scheduled_date && typedBooking.scheduled_time) {
-          scheduleReminder({
-            scheduledDate: typedBooking.scheduled_date,
-            scheduledTime: typedBooking.scheduled_time,
-            customerName: user.email || 'Kunde',
-            serviceType: typedBooking.service_type,
-            address: 'Din bolig' // This would need to be fetched from property data
-          });
-        }
-      }
-
-      return typedBooking;
+      // Refresh bookings to get the latest state
+      await fetchBookings();
+      return data;
     } catch (err) {
       console.error('Error updating booking:', err);
       setError(err instanceof Error ? err.message : 'En feil oppstod');
       return null;
     }
   };
+
+  const deleteBooking = async (id: string) => {
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Refresh bookings to get the latest state
+      await fetchBookings();
+      return true;
+    } catch (err) {
+      console.error('Error deleting booking:', err);
+      setError(err instanceof Error ? err.message : 'En feil oppstod');
+      return false;
+    }
+  };
+
+  // Set up real-time subscription for booking updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('booking-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Real-time booking update:', payload);
+          // Refresh bookings when any change occurs
+          fetchBookings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   useEffect(() => {
     fetchBookings();
@@ -180,6 +173,7 @@ export const useBookings = () => {
     error,
     createBooking,
     updateBooking,
+    deleteBooking,
     refetch: fetchBookings
   };
 };

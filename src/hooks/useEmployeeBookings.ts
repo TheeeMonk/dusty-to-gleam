@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +28,12 @@ export interface EmployeeBooking {
   customer_email?: string;
   property_address?: string;
   property_name?: string;
+  property_type?: string;
+  property_rooms?: number;
+  property_square_meters?: number;
+  property_floors?: number;
+  property_bathrooms?: number;
+  property_bedrooms?: number;
 }
 
 export const useEmployeeBookings = () => {
@@ -49,7 +56,16 @@ export const useEmployeeBookings = () => {
         .from('bookings')
         .select(`
           *,
-          properties(name, address)
+          properties(
+            name, 
+            address, 
+            type, 
+            rooms, 
+            square_meters, 
+            floors, 
+            bathrooms, 
+            bedrooms
+          )
         `)
         .order('scheduled_date', { ascending: true, nullsFirst: false })
         .order('scheduled_time', { ascending: true, nullsFirst: false })
@@ -85,6 +101,12 @@ export const useEmployeeBookings = () => {
         customer_email: profilesMap.get(booking.user_id)?.full_name || 'Ukjent kunde',
         property_address: booking.properties?.address || 'Ukjent adresse',
         property_name: booking.properties?.name || 'Ukjent eiendom',
+        property_type: booking.properties?.type || '',
+        property_rooms: booking.properties?.rooms || 0,
+        property_square_meters: booking.properties?.square_meters || 0,
+        property_floors: booking.properties?.floors || 0,
+        property_bathrooms: booking.properties?.bathrooms || 0,
+        property_bedrooms: booking.properties?.bedrooms || 0,
         status: booking.status as EmployeeBooking['status']
       }));
 
@@ -110,12 +132,7 @@ export const useEmployeeBookings = () => {
     
     if (!user) {
       console.error('No user found for booking confirmation');
-      toast({
-        title: 'Feil',
-        description: 'Du må være logget inn for å bekrefte bookinger',
-        variant: 'destructive'
-      });
-      return;
+      throw new Error('Du må være logget inn for å bekrefte bookinger');
     }
 
     try {
@@ -162,31 +179,17 @@ export const useEmployeeBookings = () => {
 
       console.log('Booking updated successfully:', data);
 
-      toast({
-        title: 'Booking bekreftet',
-        description: 'Bookingen er bekreftet og tildelt deg.',
-      });
-
       // Refresh bookings list
       await fetchBookings();
     } catch (err) {
       console.error('Error confirming booking:', err);
-      toast({
-        title: 'Feil',
-        description: `Kunne ikke bekrefte bookingen: ${err instanceof Error ? err.message : 'Ukjent feil'}`,
-        variant: 'destructive'
-      });
+      throw err;
     }
   };
 
   const startJob = async (bookingId: string) => {
     if (!user) {
-      toast({
-        title: 'Feil',
-        description: 'Du må være logget inn',
-        variant: 'destructive'
-      });
-      return;
+      throw new Error('Du må være logget inn');
     }
 
     try {
@@ -205,19 +208,10 @@ export const useEmployeeBookings = () => {
 
       if (error) throw error;
 
-      toast({
-        title: 'Jobb startet',
-        description: 'Jobben er markert som påbegynt.',
-      });
-
       await fetchBookings();
     } catch (err) {
       console.error('Error starting job:', err);
-      toast({
-        title: 'Feil',
-        description: 'Kunne ikke starte jobben.',
-        variant: 'destructive'
-      });
+      throw err;
     }
   };
 
@@ -249,19 +243,10 @@ export const useEmployeeBookings = () => {
 
       if (error) throw error;
 
-      toast({
-        title: 'Jobb fullført',
-        description: 'Jobben er markert som fullført.',
-      });
-
       await fetchBookings();
     } catch (err) {
       console.error('Error completing job:', err);
-      toast({
-        title: 'Feil',
-        description: 'Kunne ikke fullføre jobben.',
-        variant: 'destructive'
-      });
+      throw err;
     }
   };
 
