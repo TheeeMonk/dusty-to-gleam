@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import PropertyForm from '@/components/PropertyForm';
+import { useBookings } from '@/hooks/useBookings';
+import { toast } from 'sonner';
 import { 
   Home, 
   Truck, 
@@ -47,6 +50,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
   properties, 
   onAddProperty 
 }) => {
+  const { createBooking } = useBookings();
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [step, setStep] = useState<'service' | 'property' | 'confirmation'>('service');
@@ -59,7 +63,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
       description: 'Grundig rengjøring av alle rom',
       icon: Home,
       price: '800-1200 kr',
-      duration: '2-3 timer'
+      duration: '2-3 timer',
+      estimatedDuration: 150, // minutes
+      estimatedPriceMin: 80000, // øre
+      estimatedPriceMax: 120000 // øre
     },
     {
       id: 'moving',
@@ -67,7 +74,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
       description: 'Dyptgående vask ved inn/utflytting',
       icon: Truck,
       price: '1500-2500 kr',
-      duration: '4-6 timer'
+      duration: '4-6 timer',
+      estimatedDuration: 300,
+      estimatedPriceMin: 150000,
+      estimatedPriceMax: 250000
     },
     {
       id: 'windows',
@@ -75,7 +85,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
       description: 'Innvendig og utvendig vindusvask',
       icon: Eye,
       price: '400-800 kr',
-      duration: '1-2 timer'
+      duration: '1-2 timer',
+      estimatedDuration: 90,
+      estimatedPriceMin: 40000,
+      estimatedPriceMax: 80000
     },
     {
       id: 'seasonal',
@@ -83,7 +96,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
       description: 'Grundig vask 2-4 ganger per år',
       icon: Calendar,
       price: '1000-1800 kr',
-      duration: '3-5 timer'
+      duration: '3-5 timer',
+      estimatedDuration: 240,
+      estimatedPriceMin: 100000,
+      estimatedPriceMax: 180000
     },
     {
       id: 'commercial',
@@ -91,7 +107,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
       description: 'Rengjøring av kontor og butikklokaler',
       icon: Building,
       price: 'Fra 600 kr/time',
-      duration: 'Etter avtale'
+      duration: 'Etter avtale',
+      estimatedDuration: 120,
+      estimatedPriceMin: 60000,
+      estimatedPriceMax: 120000
     }
   ];
 
@@ -111,22 +130,57 @@ const BookingModal: React.FC<BookingModalProps> = ({
 
   const handlePropertyFormSave = async (newProperty: Omit<Property, 'id' | 'created_at' | 'updated_at'>) => {
     if (onAddProperty) {
-      const savedProperty = await onAddProperty(newProperty);
-      if (savedProperty) {
-        console.log('New property saved:', savedProperty);
+      try {
+        const savedProperty = await onAddProperty(newProperty);
+        if (savedProperty) {
+          console.log('New property saved:', savedProperty);
+          toast.success('Ny eiendom lagt til!');
+        }
+      } catch (error) {
+        console.error('Error saving property:', error);
+        toast.error('Kunne ikke lagre eiendom');
       }
     }
     setIsPropertyFormOpen(false);
   };
 
-  const handleBooking = () => {
-    // Handle booking logic here
-    console.log('Booking:', { service: selectedService, property: selectedProperty });
-    onClose();
-    // Reset state
-    setStep('service');
-    setSelectedService(null);
-    setSelectedProperty(null);
+  const handleBooking = async () => {
+    if (!selectedService || !selectedProperty) {
+      toast.error('Vennligst velg tjeneste og eiendom');
+      return;
+    }
+
+    const selectedServiceData = services.find(s => s.id === selectedService);
+    
+    if (!selectedServiceData) {
+      toast.error('Ugyldig tjeneste valgt');
+      return;
+    }
+
+    try {
+      const booking = await createBooking({
+        property_id: selectedProperty,
+        service_type: selectedServiceData.name,
+        estimated_duration: selectedServiceData.estimatedDuration,
+        estimated_price_min: selectedServiceData.estimatedPriceMin,
+        estimated_price_max: selectedServiceData.estimatedPriceMax
+      });
+
+      if (booking) {
+        toast.success('Bestilling opprettet!');
+        console.log('Booking created:', booking);
+        onClose();
+        // Reset state
+        setStep('service');
+        setSelectedService(null);
+        setSelectedProperty(null);
+      } else {
+        toast.error('Kunne ikke opprette bestilling');
+      }
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      toast.error('En feil oppstod ved opprettelse av bestilling');
+    }
   };
 
   const selectedServiceData = services.find(s => s.id === selectedService);
