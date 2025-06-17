@@ -6,6 +6,7 @@ import BookingModal from './BookingModal';
 import PropertyForm from './PropertyForm';
 import BookingDetailsModal from './BookingDetailsModal';
 import StatsModal from './StatsModal';
+import ProfileSettings from './ProfileSettings';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useBookings } from '@/hooks/useBookings';
 import { useProperties } from '@/hooks/useProperties';
@@ -124,18 +125,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerData, act
   const getActiveView = () => {
     switch (activeTab) {
       case 'profile':
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 p-3 sm:p-4 lg:p-6 pb-24">
-            <div className="max-w-6xl mx-auto">
-              <h1 className="text-2xl font-bold mb-4">Min Profil</h1>
-              <Card className="glass-effect">
-                <CardContent className="p-6">
-                  <p>Profilinnstillinger kommer snart...</p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        );
+        return <ProfileSettings />;
       
       case 'homes':
         return (
